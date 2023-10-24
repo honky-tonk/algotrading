@@ -1,10 +1,10 @@
 package asset
 
-type Asset interface{
-
-} 
+type Asset interface {
+}
 
 const (
 	Daily = iota
+	Weekly
 	Monthly
 )
