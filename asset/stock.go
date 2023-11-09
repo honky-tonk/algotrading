@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	//"slices" slices.Reverse support since go 1.21
 	"sort"
 	"strconv"
 	"time"
@@ -40,18 +42,18 @@ type Meta_Data struct {
 
 type Api_Price struct {
 	Open   string `json:"1. open"`
-	Close  string `json:"2. high"`
-	High   string `json:"3. low"`
-	Low    string `json:"4. close"`
+	High   string `json:"2. high"`
+	Low    string `json:"3. low"`
+	Close  string `json:"4. close"`
 	Volume string `json:"5. volume"`
 }
 
 //for program
 type Stock_Price struct {
 	Open   float64
-	Close  float64
 	High   float64
 	Low    float64
+	Close  float64
 	Volume int64
 }
 
@@ -70,6 +72,13 @@ func get_price_from_api(ptype string, assert_name string) (*http.Response, error
 	url := fmt.Sprintf("%sfunction=%s&outputsize=full&symbol=%s&apikey=%s", global.Stock_Api, ptype, assert_name, global.Api_Key)
 	logger.Info.Println("get url: ", url)
 	return http.Get(url)
+}
+
+func reverse_slice(s []Price) []Price {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
+	return s
 }
 
 //for daily price
@@ -133,8 +142,9 @@ func get_daily_price(ptype string, sname string, period int) ([]Price, error) {
 	sort.Slice(s, func(i, j int) bool {
 		return s[j].T.Before(s[i].T)
 	})
-
-	return s[:period], nil
+	s = s[:period]
+	s = reverse_slice(s)
+	return s, nil
 
 }
 
@@ -198,7 +208,9 @@ func get_weekly_price(ptype string, sname string, period int) ([]Price, error) {
 	sort.Slice(s, func(i, j int) bool {
 		return s[j].T.Before(s[i].T)
 	})
-	return s[:period], nil
+	s = s[:period]
+	s = reverse_slice(s)
+	return s, nil
 
 }
 
@@ -273,8 +285,9 @@ func get_monthly_price(ptype string, sname string, period int) ([]Price, error) 
 	sort.Slice(s, func(i, j int) bool {
 		return s[j].T.Before(s[i].T)
 	})
-
-	return s[:period], nil
+	s = s[:period]
+	s = reverse_slice(s)
+	return s, nil
 }
 
 func (s *Stocks) Get_Price(period int) (err error) {
