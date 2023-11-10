@@ -12,14 +12,6 @@ type SMA_Indicator struct {
 	Indicator_Value []Price
 }
 
-func sum_of_slice(s []float64) float64 {
-	var r float64
-	for _, v := range s {
-		r += v
-	}
-	return r
-}
-
 /*
 	a array of price of end of day is: 1(end of day1), 2(end of day2), 3(end of day3), 4(end of day4), 5(end of day5), 6, 7, 8, 9(end of day9)
 	sma period is 5 day
@@ -42,7 +34,7 @@ func (sma SMA_Indicator) Get_Indicator(s asset.Stocks) (err error) {
 	for i := sma.Period - 1; i < len(s.Prices); i++ {
 		tmp_close_price := s.Prices[i].SP.Close
 		tmp_prices = append(tmp_prices, tmp_close_price)
-		values = append(values, Price{p: sum_of_slice(tmp_prices) / float64(sma.Period), t: s.Prices[i].T})
+		values = append(values, Price{P: sum_of_slice(tmp_prices) / float64(sma.Period), T: s.Prices[i].T})
 		tmp_prices = tmp_prices[1:]
 	}
 

@@ -6,12 +6,32 @@ import (
 	"algotrading/indicator"
 	"algotrading/logger"
 	"fmt"
+	//"errors"
 )
 
-func main() {
-	fmt.Println(global.Api_Key)
-	fmt.Println(global.Stock_Api)
+func test_ema_indicator(s asset.Stocks) {
+	ema_indi := indicator.EMA_Indicator{
+		Asset_Type: asset.Daily,
+		Period:     5,
+		Smoothing:  2,
+	}
 
+	var err error
+	ema_indi.Indicator_Value, err = ema_indi.Get_Indicator(s)
+
+	if err != nil {
+		logger.Error.Fatal(err.Error())
+	}
+
+}
+
+func main() {
+	if global.Api_Key == "" {
+		logger.Error.Fatal("Please fill .env's Api_key")
+	}
+	if global.Stock_Api == "" {
+		logger.Error.Fatal("Please fill .env's Stock_Api")
+	}
 	s := asset.Stocks{
 		Type: asset.Daily,
 		Name: "IBM",
@@ -25,9 +45,7 @@ func main() {
 
 	fmt.Println(s.Prices)
 
-	sma_indi := indicator.SMA_Indicator{
-		Asset_Type: asset.Daily,
-		Period:     5,
-	}
-	sma_indi.Get_Indicator(s)
+	//test ema indicator
+	test_ema_indicator(s)
+
 }
