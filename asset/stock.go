@@ -50,22 +50,23 @@ type Api_Price struct {
 
 //for program
 type Stock_Price struct {
-	Open   float64
-	High   float64
-	Low    float64
-	Close  float64
-	Volume int64
+	Open   float64 `json:"open"`
+	High   float64 `json:"high"`
+	Low    float64 `json:"low"`
+	Close  float64 `json:"close"`
+	Volume int64   `json:"volume"`
 }
 
 type Price struct {
-	T  time.Time
-	SP Stock_Price
+	T  time.Time   `json:"time"`
+	SP Stock_Price `json:"stock_price"`
 }
 
 type Stocks struct {
 	Prices []Price
-	Type   int
-	Name   string
+	Type   int    `json:"data_type"`
+	Name   string `json:"stock_name"`
+	Period int    `json:"period"`
 }
 
 func get_price_from_api(ptype string, assert_name string) (*http.Response, error) {
@@ -290,25 +291,26 @@ func get_monthly_price(ptype string, sname string, period int) ([]Price, error) 
 	return s, nil
 }
 
-func (s *Stocks) Get_Price(period int) (err error) {
+func (s *Stocks) Get_Price() (err error) {
 	//var time_type string
 	//var price_from_api interface{}
 
+	fmt.Println("Daily is: ", Daily)
 	switch {
 	case s.Type == Daily:
-		s.Prices, err = get_daily_price("TIME_SERIES_DAILY", s.Name, period)
+		s.Prices, err = get_daily_price("TIME_SERIES_DAILY", s.Name, s.Period)
 		if err != nil {
 			return err
 		}
 		break
 	case s.Type == Weekly:
-		s.Prices, err = get_weekly_price("TIME_SERIES_WEEKLY", s.Name, period)
+		s.Prices, err = get_weekly_price("TIME_SERIES_WEEKLY", s.Name, s.Period)
 		if err != nil {
 			return err
 		}
 		break
 	case s.Type == Monthly:
-		s.Prices, err = get_monthly_price("TIME_SERIES_MONTHLY", s.Name, period)
+		s.Prices, err = get_monthly_price("TIME_SERIES_MONTHLY", s.Name, s.Period)
 		if err != nil {
 			return err
 		}

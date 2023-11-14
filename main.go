@@ -1,51 +1,40 @@
 package main
 
 import (
-	"algotrading/asset"
 	"algotrading/global"
-	"algotrading/indicator"
+	"algotrading/handler"
 	"algotrading/logger"
-	"fmt"
+	"syscall"
+
 	//"errors"
+	"fmt"
+
+	"github.com/gin-gonic/gin"
+	"golang.org/x/term"
 )
 
-func test_ema_indicator(s asset.Stocks) {
-	ema_indi := indicator.EMA_Indicator{
-		Asset_Type: asset.Daily,
-		Period:     5,
-		Smoothing:  2,
-	}
-
-	var err error
-	ema_indi.Indicator_Value, err = ema_indi.Get_Indicator(s)
-
+func main() {
+	//for api key
+	fmt.Println("Please Input alphavantage private key")
+	//input key
+	key, err := term.ReadPassword(int(syscall.Stdin))
 	if err != nil {
 		logger.Error.Fatal(err.Error())
 	}
-
-}
-
-func main() {
+	//convert []byte to string
+	global.Api_Key = string(key)
+	//check if key is null
 	if global.Api_Key == "" {
-		logger.Error.Fatal("Please fill .env's Api_key")
-	}
-	if global.Stock_Api == "" {
-		logger.Error.Fatal("Please fill .env's Stock_Api")
-	}
-	s := asset.Stocks{
-		Type: asset.Daily,
-		Name: "IBM",
+		logger.Error.Fatal("Input error")
 	}
 
-	err := s.Get_Price(200)
+	//for restful api
+	router := gin.New()
+	api_router := router.Group("/api")
+	//asset api
+	stock_api := api_router.Group("/stock")
+	stock_api.POST("/query", handler.Asset_Query)
 
-	if err != nil {
-		logger.Error.Panic(err.Error())
-	}
-
-	fmt.Println(s.Prices)
-
-	//test ema indicator
-	test_ema_indicator(s)
+	router.Run("localhost:8080")
 
 }

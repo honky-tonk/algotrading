@@ -1,10 +1,11 @@
 package asset
 
 type Asset interface {
+	Get_Price(int) error
 }
 
 const (
-	Daily = iota
+	Daily = iota + 1
 	Weekly
 	Monthly
 )
