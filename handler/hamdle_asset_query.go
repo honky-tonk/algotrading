@@ -2,6 +2,7 @@ package handler
 
 import (
 	"algotrading/asset"
+	"algotrading/db"
 	"algotrading/logger"
 	"fmt"
 
@@ -9,6 +10,10 @@ import (
 )
 
 func Asset_Query(c *gin.Context) {
+	//open db
+	d := db.Db_main()
+	defer d.Close()
+
 	s := asset.Stocks{}
 	err := c.ShouldBindJSON(&s)
 	if err != nil {
@@ -30,7 +35,7 @@ func Asset_Query(c *gin.Context) {
 		return
 	}
 
-	err = s.Get_Price()
+	err = s.Get_Price(d)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"code":    500,

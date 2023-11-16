@@ -4,6 +4,9 @@ import (
 	"algotrading/global"
 	"algotrading/handler"
 	"algotrading/logger"
+	"algotrading/middlewares"
+
+	//"net/http"
 	"syscall"
 
 	//"errors"
@@ -14,6 +17,7 @@ import (
 )
 
 func main() {
+
 	//for api key
 	fmt.Println("Please Input alphavantage private key")
 	//input key
@@ -28,13 +32,15 @@ func main() {
 		logger.Error.Fatal("Input error")
 	}
 
-	//for restful api
+	//for access-control-allow
 	router := gin.New()
+	router.Use(middlewares.Cors())
+	//for restful api
 	api_router := router.Group("/api")
 	//asset api
 	stock_api := api_router.Group("/stock")
 	stock_api.POST("/query", handler.Asset_Query)
 
-	router.Run("localhost:8080")
+	router.Run("192.168.152.215:8080")
 
 }
