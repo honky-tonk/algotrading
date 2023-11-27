@@ -58,6 +58,12 @@ type Stock_Price struct {
 	Volume int64   `json:"volume"`
 }
 
+// for indicator
+type Indicator_Value struct {
+	T time.Time
+	P float64
+}
+
 type Price struct {
 	T  time.Time   `json:"time"`
 	SP Stock_Price `json:"stock_price"`
@@ -320,6 +326,21 @@ func get_monthly_price(db *sql.DB, ptype string, sname string, period int) ([]Pr
 	return s, nil
 }
 
+func need_update_data(p []Price) bool {
+	now := time.Now()          //time of now
+	db_newest := p[len(p)-1].T //time of newst data in database
+
+	oneday, _ := time.ParseDuration("24h")
+	//threeday, _ := time.ParseDuration("72h")
+
+	fmt.Println("now is: ", now.String(), "db_newest is: ", db_newest.String())
+	if now == db_newest || now.Sub(db_newest) <= oneday { //with one day error
+		return false //no need update
+	}
+
+	return true
+}
+
 func (s *Stocks) Check_Stock_Exist_From_Database(db *sql.DB) bool {
 	var exist bool
 
@@ -374,7 +395,7 @@ func Write_To_Database(db *sql.DB, sname string, s []Price) error {
 func Read_Stock_Data_From_Database(d *sql.DB, sname string, period int) ([]Price, error) {
 	var p []Price //for return
 	var tmp_price Price
-	query := `SELECT * FROM sh_stock WHERE stock_id = $1 ORDER BY time DESC LIMIT $2;`
+	query := `SELECT * FROM sh_stock WHERE stock_id = $1 ORDER BY time LIMIT $2;`
 
 	tx, _ := d.Begin()
 	//query
@@ -405,7 +426,8 @@ func Read_Stock_Data_From_Database(d *sql.DB, sname string, period int) ([]Price
 		tx.Rollback()
 		return nil, err
 	}
-	fmt.Println(p)
+
+	//fmt.Println(p)
 	return p, nil
 }
 
@@ -424,12 +446,14 @@ func (s *Stocks) Get_Price(d *sql.DB) (err error) {
 			if err != nil {
 				return err
 			}
+			//fmt.Println(s.Prices)
 			break
 		}
 		s.Prices, err = get_daily_price("TIME_SERIES_DAILY", s.Name, s.Period, d)
 		if err != nil {
 			return err
 		}
+		//fmt.Println(s.Prices)
 		break
 	case s.Type == Weekly:
 		//check if exist in database
