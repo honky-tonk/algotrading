@@ -81,22 +81,25 @@ func calculate_jvalue(k []asset.Indicator_Value, d []asset.Indicator_Value, dval
 	return j, nil
 }
 
-func (kdj *KDJ_Indicator) Calculate_Indicator(s asset.Stocks) ([]asset.Indicator_Value, []asset.Indicator_Value, []asset.Indicator_Value, error) {
+func (kdj *KDJ_Indicator) Calculate_Indicator(s asset.Stocks) error {
 	var kvalue []asset.Indicator_Value
 	var dvalue []asset.Indicator_Value
 	var jvalue []asset.Indicator_Value
 
 	//k value period is 14 day, d value period of sma is 3
 	if s.Period <= 17 {
-		return nil, nil, nil, errors.New("Period is not fit this indicator")
+		return errors.New("Period is not fit this indicator")
 	}
 
 	kvalue = calculate_kvalue(s)
 	dvalue, period := calculate_dvalue(kdj.Type, kvalue)
 	jvalue, err := calculate_jvalue(kvalue, dvalue, period)
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
-	return kvalue, dvalue, jvalue, nil
+	kdj.Kvalue = kvalue
+	kdj.Dvalue = dvalue
+	kdj.Jvalue = jvalue
+	return nil
 }

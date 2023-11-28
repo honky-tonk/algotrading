@@ -16,19 +16,19 @@ type EMA_Indicator struct {
 }
 
 /*
-	we use SMA for init ema init indicator
+we use SMA for init ema init indicator
 */
-func (ema EMA_Indicator) Calculate_Indicator(s asset.Stocks) ([]asset.Indicator_Value, error) {
+func (ema EMA_Indicator) Calculate_Indicator(s asset.Stocks) error {
 	if ema.Smoothing == 0 {
-		return nil, errors.New("Please fill smoothing member of EMA_Indicator struct obj")
+		return errors.New("Please fill smoothing member of EMA_Indicator struct obj")
 	}
 
 	if ema.Period == 0 {
-		return nil, errors.New("Please set Period member of EMA_Indicator struct obj")
+		return errors.New("Please set Period member of EMA_Indicator struct obj")
 	}
 
 	if len(s.Prices) < ema.Period {
-		return nil, errors.New("Not Have enough sample for indicator")
+		return errors.New("Not Have enough sample for indicator")
 	}
 
 	var Multipler float64
@@ -52,7 +52,7 @@ func (ema EMA_Indicator) Calculate_Indicator(s asset.Stocks) ([]asset.Indicator_
 		//fmt.Println("yesterday is ", yeasterday_ema, "today's price is ", today_price, " ", ema.Indicator_Value[len(ema.Indicator_Value)-1], " ", s.Prices[i].T)
 	}
 
-	return ema.Indicator_Value, nil
+	return nil
 }
 
 func (sig EMA_Indicator) Calculate_Indicator_macd_sig(p []asset.Indicator_Value) ([]asset.Indicator_Value, error) {

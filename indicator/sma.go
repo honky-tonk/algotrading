@@ -13,13 +13,13 @@ type SMA_Indicator struct {
 }
 
 /*
-	a array of price of end of day is: 1(end of day1), 2(end of day2), 3(end of day3), 4(end of day4), 5(end of day5), 6, 7, 8, 9(end of day9)
-	sma period is 5 day
-	sma indicator is: nil(end of day1), nil(end of day2), nil(end of day3), nil(end of day4), (1+2+3+4+5)/5=3(end of day5), 2+3+4+5+6/5=2.8(end of day6)......(5+6+7+8+9)/5=7(end of day9)
+a array of price of end of day is: 1(end of day1), 2(end of day2), 3(end of day3), 4(end of day4), 5(end of day5), 6, 7, 8, 9(end of day9)
+sma period is 5 day
+sma indicator is: nil(end of day1), nil(end of day2), nil(end of day3), nil(end of day4), (1+2+3+4+5)/5=3(end of day5), 2+3+4+5+6/5=2.8(end of day6)......(5+6+7+8+9)/5=7(end of day9)
 */
-func (sma SMA_Indicator) Calculate_Indicator(s asset.Stocks) ([]asset.Indicator_Value, error) {
+func (sma SMA_Indicator) Calculate_Indicator(s asset.Stocks) error {
 	if len(s.Prices) <= sma.Period {
-		return nil, errors.New("Not Have enough sample for indicator")
+		return errors.New("Not Have enough sample for indicator")
 	}
 
 	values := make([]asset.Indicator_Value, 0)
@@ -39,7 +39,7 @@ func (sma SMA_Indicator) Calculate_Indicator(s asset.Stocks) ([]asset.Indicator_
 	}
 
 	sma.Indicator_Value = values
-	return values, nil
+	return nil
 }
 
 func (sma SMA_Indicator) Calculate_Indicator_For_kdj(s []asset.Indicator_Value) ([]asset.Indicator_Value, error) {

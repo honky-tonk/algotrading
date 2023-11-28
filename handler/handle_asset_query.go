@@ -151,7 +151,7 @@ func Asset_Query(c *gin.Context) {
 
 	kdj_ind := indicator.KDJ_Indicator{}
 	kdj_ind.Type = s.Type
-	k_value, d_value, j_value, err := kdj_ind.Calculate_Indicator(test_price)
+	err = kdj_ind.Calculate_Indicator(test_price)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"code":    500,
@@ -167,18 +167,18 @@ func Asset_Query(c *gin.Context) {
 	}
 
 	fmt.Println("--------------------k_value----------------------")
-	for i := 0; i < len(k_value); i++ {
-		fmt.Println("date is: ", k_value[i].T.String(), " price is: ", k_value[i].P)
+	for i := 0; i < len(kdj_ind.Kvalue); i++ {
+		fmt.Println("date is: ", kdj_ind.Kvalue[i].T.String(), " price is: ", kdj_ind.Kvalue[i].P)
 	}
 
 	fmt.Println("--------------------d_value----------------------")
-	for i := 0; i < len(d_value); i++ {
-		fmt.Println("date is: ", d_value[i].T.String(), " price is: ", d_value[i].P)
+	for i := 0; i < len(kdj_ind.Dvalue); i++ {
+		fmt.Println("date is: ", kdj_ind.Dvalue[i].T.String(), " price is: ", kdj_ind.Dvalue[i].P)
 	}
 
 	fmt.Println("--------------------j_value----------------------")
-	for i := 0; i < len(j_value); i++ {
-		fmt.Println("date is: ", j_value[i].T.String(), " price is: ", j_value[i].P)
+	for i := 0; i < len(kdj_ind.Jvalue); i++ {
+		fmt.Println("date is: ", kdj_ind.Jvalue[i].T.String(), " price is: ", kdj_ind.Jvalue[i].P)
 	}
 
 	//for test indicator

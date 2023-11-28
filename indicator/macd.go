@@ -16,19 +16,19 @@ type MACD_Indicator struct {
 }
 
 /*
-	MACD = 12_period EMA - 26_period EMA
+MACD = 12_period EMA - 26_period EMA
 */
-func (m *MACD_Indicator) Calculate_Indicator(s asset.Stocks) ([]asset.Indicator_Value /*Signal_Indicator*/, []asset.Indicator_Value /*MACD_Indicator_Value*/, error) {
+func (m *MACD_Indicator) Calculate_Indicator(s asset.Stocks) error {
 	ema_12_period_indic := EMA_Indicator{}
 	ema_26_period_indic := EMA_Indicator{}
 	signal_indic := EMA_Indicator{}
 
 	if m.Smoothing_EMA == 0 {
-		return nil, nil, errors.New("Please fill smoothing member of EMA_Indicator struct obj")
+		return errors.New("Please fill smoothing member of EMA_Indicator struct obj")
 	}
 
 	if len(s.Prices) < 26 {
-		return nil, nil, errors.New("Not Have enough sample for indicator")
+		return errors.New("Not Have enough sample for indicator")
 	}
 
 	//init 12 period of ema indicator
@@ -48,14 +48,14 @@ func (m *MACD_Indicator) Calculate_Indicator(s asset.Stocks) ([]asset.Indicator_
 
 	var err error
 	//get indicitor of 12_period of ema
-	ema_12_period_indic.Indicator_Value, err = ema_12_period_indic.Calculate_Indicator(s)
+	err = ema_12_period_indic.Calculate_Indicator(s)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 	//get indicator of 26_period of ema
-	ema_26_period_indic.Indicator_Value, err = ema_26_period_indic.Calculate_Indicator(s)
+	err = ema_26_period_indic.Calculate_Indicator(s)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	//get macd indicate
@@ -70,10 +70,10 @@ func (m *MACD_Indicator) Calculate_Indicator(s asset.Stocks) ([]asset.Indicator_
 	}
 
 	//get 9_period ema indicator for signal
-	signal_indic.Indicator_Value, err = signal_indic.Calculate_Indicator_macd_sig(m.MACD_Indicator_Value)
+	m.Signal_Indicator, err = signal_indic.Calculate_Indicator_macd_sig(m.MACD_Indicator_Value)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
-	return signal_indic.Indicator_Value, m.MACD_Indicator_Value, nil
+	return nil
 }
