@@ -14,7 +14,7 @@ type KDJ_Indicator struct {
 	Type   int //asset type
 }
 
-//find max stock price give period and return INDIX
+// find max stock price give period and return INDIX
 func find_max(p []asset.Price) int {
 	max_value_idx := 0
 	for i, _ := range p {
@@ -26,7 +26,7 @@ func find_max(p []asset.Price) int {
 	return max_value_idx
 }
 
-//find min stock price give period and return INDIX
+// find min stock price give period and return INDIX
 func find_min(p []asset.Price) int {
 	min_value_idx := 0
 	for i, _ := range p {
@@ -38,16 +38,16 @@ func find_min(p []asset.Price) int {
 	return min_value_idx
 }
 
-//k value is (today close price - lowest price last n day) /(highest close price - lowest price last n day) where n is 14(of course you can edit this value)
+// k value is (today close price - lowest price last n day) /(highest close price - lowest price last n day) where n is 14(of course you can edit this value)
 func calculate_kvalue(s asset.Stocks) []asset.Indicator_Value {
 	k := make([]asset.Indicator_Value, 0)
 	var tmp_k_value asset.Indicator_Value
+	for i, j := 0, 13; j < len(s.Prices); i, j = i+1, j+1 {
 
-	for i, j := 0, 13; i < len(s.Prices); i, j = i+1, j+1 {
-		max_value_idx := find_max(s.Prices[i : j+1])
-		min_value_idx := find_min(s.Prices[i : j+1])
+		max_value_idx := find_max(s.Prices[i:j+1]) + i //i is offset
+		min_value_idx := find_min(s.Prices[i:j+1]) + i //i is offset
 
-		tmp_k_value.P = (s.Prices[j].SP.Close - s.Prices[min_value_idx].SP.Close) / (s.Prices[max_value_idx].SP.Close - s.Prices[min_value_idx].SP.Close)
+		tmp_k_value.P = (s.Prices[j].SP.Close - s.Prices[min_value_idx].SP.Close) / (s.Prices[max_value_idx].SP.Close - s.Prices[min_value_idx].SP.Close) * 100
 		tmp_k_value.T = s.Prices[j].T
 
 		k = append(k, tmp_k_value)
@@ -55,7 +55,7 @@ func calculate_kvalue(s asset.Stocks) []asset.Indicator_Value {
 	return k
 }
 
-//d value is SMA(3,kvalue)
+// d value is SMA(3,kvalue)
 func calculate_dvalue(t int, k []asset.Indicator_Value) ([]asset.Indicator_Value, int) {
 	sma := SMA_Indicator{}
 	sma.Asset_Type = t
@@ -65,7 +65,7 @@ func calculate_dvalue(t int, k []asset.Indicator_Value) ([]asset.Indicator_Value
 	return sma.Indicator_Value, sma.Period
 }
 
-//j value = 3 * %D - 2 * %k 3 and 2 is arbitrary scale
+// j value = 3 * %D - 2 * %k 3 and 2 is arbitrary scale
 func calculate_jvalue(k []asset.Indicator_Value, d []asset.Indicator_Value, dvalue_period int) ([]asset.Indicator_Value, error) {
 	j := make([]asset.Indicator_Value, 0)
 	for i, _ := range d {
@@ -74,7 +74,7 @@ func calculate_jvalue(k []asset.Indicator_Value, d []asset.Indicator_Value, dval
 		}
 
 		tmp_value := asset.Indicator_Value{}
-		tmp_value.P = float64(3)*d[i].P - float64(2)*k[i+dvalue_period].P
+		tmp_value.P = float64(3)*d[i].P - float64(2)*k[i+dvalue_period-1].P
 		tmp_value.T = d[i].T
 		j = append(j, tmp_value)
 	}
