@@ -22,3 +22,14 @@ func init() {
 	Api_Key = os.Getenv("API_KEY")
 	Stock_Api = os.Getenv("STOCK_API")
 }
+
+const (
+	Daily = iota + 1
+	Weekly
+	Monthly
+
+	SMA
+	EMA
+	MACD
+	KDJ
+)

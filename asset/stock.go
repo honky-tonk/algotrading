@@ -49,7 +49,7 @@ type Api_Price struct {
 	Volume string `json:"5. volume"`
 }
 
-//for program
+// for program
 type Stock_Price struct {
 	Open   float64 `json:"open"`
 	High   float64 `json:"high"`
@@ -89,7 +89,7 @@ func reverse_slice(s []Price) []Price {
 	return s
 }
 
-//for daily price
+// for daily price
 // ptype is price type, sname is stock name, we will fill price map
 func get_daily_price(ptype string, sname string, period int, db *sql.DB) ([]Price, error) {
 	d := Daily_Stock{}
@@ -166,7 +166,7 @@ func get_daily_price(ptype string, sname string, period int, db *sql.DB) ([]Pric
 
 }
 
-//get price pre weekly(friday night price)
+// get price pre weekly(friday night price)
 func get_weekly_price(db *sql.DB, ptype string, sname string, period int) ([]Price, error) {
 	w := Weekly_Stock{}
 	resp, err := get_price_from_api(ptype, sname)
@@ -241,7 +241,7 @@ func get_weekly_price(db *sql.DB, ptype string, sname string, period int) ([]Pri
 
 }
 
-//get the price of each month last trade day's
+// get the price of each month last trade day's
 func get_monthly_price(db *sql.DB, ptype string, sname string, period int) ([]Price, error) {
 	m := Monthly_Stock{}
 	resp, err := get_price_from_api(ptype, sname)
@@ -435,9 +435,9 @@ func (s *Stocks) Get_Price(d *sql.DB) (err error) {
 	//var time_type string
 	//var price_from_api interface{}
 
-	fmt.Println("Daily is: ", Daily)
+	fmt.Println("Daily is: ", global.Daily)
 	switch {
-	case s.Type == Daily:
+	case s.Type == global.Daily:
 		//check if exist in database
 		exist := s.Check_Stock_Exist_From_Database(d)
 		if exist == true {
@@ -455,7 +455,7 @@ func (s *Stocks) Get_Price(d *sql.DB) (err error) {
 		}
 		//fmt.Println(s.Prices)
 		break
-	case s.Type == Weekly:
+	case s.Type == global.Weekly:
 		//check if exist in database
 		exist := s.Check_Stock_Exist_From_Database(d)
 		if exist == true {
@@ -472,7 +472,7 @@ func (s *Stocks) Get_Price(d *sql.DB) (err error) {
 			return err
 		}
 		break
-	case s.Type == Monthly:
+	case s.Type == global.Monthly:
 		//check if exist in database
 		exist := s.Check_Stock_Exist_From_Database(d)
 		if exist == true {
