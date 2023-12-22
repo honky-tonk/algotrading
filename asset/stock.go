@@ -49,7 +49,6 @@ type Api_Price struct {
 	Volume string `json:"5. volume"`
 }
 
-// for program
 type Stock_Price struct {
 	Open   float64 `json:"open"`
 	High   float64 `json:"high"`
@@ -69,6 +68,7 @@ type Price struct {
 	SP Stock_Price `json:"stock_price"`
 }
 
+// for program
 type Stocks struct {
 	Prices []Price
 	Type   int    `json:"data_type"`
