@@ -1,9 +1,9 @@
 package algolib
-import(
+
+import (
 	"algotrading/asset"
 )
 
-type Params struct{
-	S asset.Stocks[]
-
+type Params struct {
+	S []asset.Stocks
 }
