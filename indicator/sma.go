@@ -4,12 +4,13 @@ package indicator
 import (
 	"algotrading/asset"
 	"errors"
+	"fmt"
 )
 
 type SMA_Indicator struct {
-	Asset_Type      int
-	Period          int
-	Indicator_Value []asset.Indicator_Value
+	//Asset_Type      int
+	Period          int                     `json:"indic_period"`
+	Indicator_Value []asset.Indicator_Value `json:"indic_values"`
 }
 
 /*
@@ -17,7 +18,13 @@ a array of price of end of day is: 1(end of day1), 2(end of day2), 3(end of day3
 sma period is 5 day
 sma indicator is: nil(end of day1), nil(end of day2), nil(end of day3), nil(end of day4), (1+2+3+4+5)/5=3(end of day5), 2+3+4+5+6/5=2.8(end of day6)......(5+6+7+8+9)/5=7(end of day9)
 */
-func (sma SMA_Indicator) Calculate_Indicator(s asset.Stocks) error {
+
+func (sma *SMA_Indicator) Set_Period(period int) {
+	fmt.Println("period of sma is ", period)
+	sma.Period = period
+}
+
+func (sma *SMA_Indicator) Calculate_Indicator(s *asset.Stocks) error {
 	if len(s.Prices) <= sma.Period {
 		return errors.New("Not Have enough sample for indicator")
 	}
@@ -26,6 +33,7 @@ func (sma SMA_Indicator) Calculate_Indicator(s asset.Stocks) error {
 
 	var tmp_prices []float64
 	//inital first sma.period
+	fmt.Println("sma period is ", sma.Period)
 	for i := 0; i < sma.Period-1; i++ {
 		tmp_close_price := s.Prices[i].SP.Close
 		tmp_prices = append(tmp_prices, tmp_close_price)

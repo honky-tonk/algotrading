@@ -59,8 +59,8 @@ type Stock_Price struct {
 
 // for indicator
 type Indicator_Value struct {
-	T time.Time
-	P float64
+	T time.Time `json:"time"`
+	P float64   `json:"value"`
 }
 
 type Price struct {
@@ -70,10 +70,12 @@ type Price struct {
 
 // for program
 type Stocks struct {
-	Prices []Price
-	Type   int    `json:"data_type"`
-	Name   string `json:"stock_name"`
-	Period int    `json:"period"`
+	Prices           []Price `json:"prices"`
+	Type             int     `json:"data_type"`
+	Name             string  `json:"stock_name"`
+	Period           int     `json:"period"`
+	Indicator_Type   int     `json:"indic"`
+	Indicator_Period int     `json:"indic_period"`
 }
 
 func get_price_from_api(ptype string, assert_name string) (*http.Response, error) {
@@ -395,7 +397,7 @@ func Write_To_Database(db *sql.DB, sname string, s []Price) error {
 func Read_Stock_Data_From_Database(d *sql.DB, sname string, period int) ([]Price, error) {
 	var p []Price //for return
 	var tmp_price Price
-	query := `SELECT * FROM sh_stock WHERE stock_id = $1 ORDER BY time LIMIT $2;`
+	query := `SELECT * FROM (SELECT * FROM sh_stock WHERE stock_id = $1  ORDER BY time DESC LIMIT $2) AS price  ORDER BY time ASC;`
 
 	tx, _ := d.Begin()
 	//query

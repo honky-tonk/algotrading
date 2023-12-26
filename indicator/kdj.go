@@ -8,10 +8,11 @@ import (
 /*for KDJ indicator*/
 
 type KDJ_Indicator struct {
-	Kvalue []asset.Indicator_Value
-	Dvalue []asset.Indicator_Value
-	Jvalue []asset.Indicator_Value
-	Type   int //asset type
+	Kvalue []asset.Indicator_Value `json:"kvalues"`
+	Dvalue []asset.Indicator_Value `json:"dvalues"`
+	Jvalue []asset.Indicator_Value `json:"jvalues"`
+	Period int                     `json:"indic_period"`
+	//Type   int 						`json:"type"`
 }
 
 // find max stock price give period and return INDIX
@@ -38,8 +39,10 @@ func find_min(p []asset.Price) int {
 	return min_value_idx
 }
 
+func (kdj KDJ_Indicator) Set_Period(period int) { /*kdj no need period*/ }
+
 // k value is (today close price - lowest price last n day) /(highest close price - lowest price last n day) where n is 14(of course you can edit this value)
-func calculate_kvalue(s asset.Stocks) []asset.Indicator_Value {
+func calculate_kvalue(s *asset.Stocks) []asset.Indicator_Value {
 	k := make([]asset.Indicator_Value, 0)
 	var tmp_k_value asset.Indicator_Value
 	for i, j := 0, 13; j < len(s.Prices); i, j = i+1, j+1 {
@@ -56,9 +59,9 @@ func calculate_kvalue(s asset.Stocks) []asset.Indicator_Value {
 }
 
 // d value is SMA(3,kvalue)
-func calculate_dvalue(t int, k []asset.Indicator_Value) ([]asset.Indicator_Value, int) {
+func calculate_dvalue(k []asset.Indicator_Value) ([]asset.Indicator_Value, int) {
 	sma := SMA_Indicator{}
-	sma.Asset_Type = t
+	//sma.Asset_Type = t
 	sma.Period = 3
 	sma.Indicator_Value, _ = sma.Calculate_Indicator_For_kdj(k)
 
@@ -81,7 +84,7 @@ func calculate_jvalue(k []asset.Indicator_Value, d []asset.Indicator_Value, dval
 	return j, nil
 }
 
-func (kdj *KDJ_Indicator) Calculate_Indicator(s asset.Stocks) error {
+func (kdj *KDJ_Indicator) Calculate_Indicator(s *asset.Stocks) error {
 	var kvalue []asset.Indicator_Value
 	var dvalue []asset.Indicator_Value
 	var jvalue []asset.Indicator_Value
@@ -92,7 +95,7 @@ func (kdj *KDJ_Indicator) Calculate_Indicator(s asset.Stocks) error {
 	}
 
 	kvalue = calculate_kvalue(s)
-	dvalue, period := calculate_dvalue(kdj.Type, kvalue)
+	dvalue, period := calculate_dvalue(kvalue)
 	jvalue, err := calculate_jvalue(kvalue, dvalue, period)
 	if err != nil {
 		return err

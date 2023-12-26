@@ -8,17 +8,22 @@ import (
 /*for moving average convergence/divergence indicator*/
 
 type MACD_Indicator struct {
-	Asset_Type int
+	//Asset_Type int
 	//Period int # the formula of MACD is 12_Period EMA - 26_period EMA
-	Signal_Indicator     []asset.Indicator_Value //9-period of ema(ema data from MACD)
-	MACD_Indicator_Value []asset.Indicator_Value
-	Smoothing_EMA        int
+	Signal_Indicator     []asset.Indicator_Value `json:"signal_values"` //9-period of ema(ema data from MACD)
+	MACD_Indicator_Value []asset.Indicator_Value `json:"macd_values"`
+	Smoothing_EMA        int                     `json:"smoothing_of_ema"`
+	Period               int                     `json:"indic_period"`
 }
+
+func (m MACD_Indicator) Set_Period(period int) { /*macd no need period*/ }
 
 /*
 MACD = 12_period EMA - 26_period EMA
 */
-func (m *MACD_Indicator) Calculate_Indicator(s asset.Stocks) error {
+func (m *MACD_Indicator) Calculate_Indicator(s *asset.Stocks) error {
+	m.Smoothing_EMA = 2
+
 	ema_12_period_indic := EMA_Indicator{}
 	ema_26_period_indic := EMA_Indicator{}
 	signal_indic := EMA_Indicator{}
@@ -32,17 +37,17 @@ func (m *MACD_Indicator) Calculate_Indicator(s asset.Stocks) error {
 	}
 
 	//init 12 period of ema indicator
-	ema_12_period_indic.Asset_Type = s.Type
+	//ema_12_period_indic.Asset_Type = s.Type
 	ema_12_period_indic.Smoothing = m.Smoothing_EMA
 	ema_12_period_indic.Period = 12
 
 	//init 26 period of ema indicator
-	ema_26_period_indic.Asset_Type = s.Type
+	//ema_26_period_indic.Asset_Type = s.Type
 	ema_26_period_indic.Smoothing = m.Smoothing_EMA
 	ema_26_period_indic.Period = 26
 
 	//init signal indicator
-	signal_indic.Asset_Type = s.Type
+	//signal_indic.Asset_Type = s.Type
 	signal_indic.Smoothing = m.Smoothing_EMA
 	signal_indic.Period = 9
 

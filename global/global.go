@@ -28,6 +28,7 @@ const (
 	Weekly
 	Monthly
 
+	NoneIndicator
 	SMA
 	EMA
 	MACD

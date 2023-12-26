@@ -3,22 +3,27 @@ package indicator
 import (
 	"algotrading/asset"
 	"errors"
+	"fmt"
 	//"fmt"
 )
 
 /*for exponential moving average(EMA) indicator*/
 
 type EMA_Indicator struct {
-	Asset_Type      int
-	Period          int
-	Indicator_Value []asset.Indicator_Value
-	Smoothing       int
+	//Asset_Type      int							`json:"type"`
+	Period          int                     `json:"indic_period"`
+	Indicator_Value []asset.Indicator_Value `json:"indic_values"`
+	Smoothing       int                     `json:"smoothing"`
 }
 
 /*
 we use SMA for init ema init indicator
 */
-func (ema EMA_Indicator) Calculate_Indicator(s asset.Stocks) error {
+
+func (ema *EMA_Indicator) Set_Period(period int) { ema.Period = period }
+
+func (ema *EMA_Indicator) Calculate_Indicator(s *asset.Stocks) error {
+	ema.Smoothing = 2
 	if ema.Smoothing == 0 {
 		return errors.New("Please fill smoothing member of EMA_Indicator struct obj")
 	}
@@ -51,7 +56,7 @@ func (ema EMA_Indicator) Calculate_Indicator(s asset.Stocks) error {
 		ema.Indicator_Value = append(ema.Indicator_Value, asset.Indicator_Value{P: today_price*Multipler + (yeasterday_ema * (1 - Multipler)), T: s.Prices[i].T})
 		//fmt.Println("yesterday is ", yeasterday_ema, "today's price is ", today_price, " ", ema.Indicator_Value[len(ema.Indicator_Value)-1], " ", s.Prices[i].T)
 	}
-
+	fmt.Println("------------------debug--------------------\n", ema.Indicator_Value, "----------------debug---------------\n")
 	return nil
 }
 
