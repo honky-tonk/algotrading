@@ -21,7 +21,9 @@ func Correct_Price(s []asset.Stocks) ([]asset.Stocks, error) {
 		asset1[v.T] = v.SP
 	}
 	//compare with asset2
-	//TODO
+	for _, v := range s[1].Prices {
+
+	}
 
 	return result, nil
 }
