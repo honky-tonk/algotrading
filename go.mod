@@ -35,8 +35,6 @@ require (
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
 	golang.org/x/text v0.12.0 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	gonum.org/v1/gonum v0.14.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
