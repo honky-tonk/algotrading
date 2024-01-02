@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"algotrading/algolib"
 	"algotrading/asset"
 	"algotrading/global"
 )
@@ -74,6 +75,24 @@ func select_asset(db *sql.DB) ([]asset.Stocks, error) {
 
 }
 
+// get backtest start time point
+func select_backtest_start_timepoint(asset_period int) (int, error) {
+	fmt.Println("==========Get Backtest Start Time Point========")
+	fmt.Println("Start Time Point: ")
+
+	var start_period int
+	_, err := fmt.Scan(&start_period)
+	if err != nil {
+		return 0, err
+	}
+
+	if start_period >= asset_period {
+		return 0, errors.New("error! start time point greater than asset period.")
+	}
+
+	return start_period, nil
+}
+
 func select_algo(algo *string) error {
 	//print algo support now
 	fmt.Println("==========Algo Support Now========")
@@ -91,9 +110,18 @@ func select_algo(algo *string) error {
 	return nil
 }
 
+// goroutine get each price algo need, and pass to algo goroutine via channel
+func fetch_perice() {
+	//TODO
+}
+
 func exec_algo(algo string, assets []asset.Stocks) error {
 	switch {
 	case algo == "Stat_Arb":
+		params := algolib.Params{}
+		params.IsBackTest = true
+		params.S = assets
+		algolib.Call_Algo(params, algolib.Stat_Arb)
 
 	case algo == "Mean_Reversion":
 
@@ -121,7 +149,16 @@ func Backtest_Main(db *sql.DB) error {
 		return err
 	}
 
+	//select backtest start time point
+	start_timepoint, err := select_backtest_start_timepoint(assets[0].Period)
+	if err != nil {
+		return err
+	}
+
 	//exec algo
+	//先说一下这里的思想，由一个goroutine去哪一天的数据然后传入channel被阻塞，
+	//algo也是由一个goroutine驱动，algo goroutine从channel拿到数据进行计算，
+	//在algo goroutine拿到数据的时候fetch_price goroutine解除阻塞继续执行
 	exec_algo(algo, assets)
 
 	//statistical of backtest

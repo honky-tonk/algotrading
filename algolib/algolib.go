@@ -6,11 +6,20 @@ import (
 )
 
 // callback func of trading algo
-type Trading_Algo func(params Params)
+type Trading_Algo func(params Params) (Statistc_Result, error)
 
 type Params struct {
-	Factors indicator.Factors
-	S       []asset.Stocks
+	IsBackTest bool
+	Factors    indicator.Factors
+	S          []asset.Stocks
+}
+
+type Message struct {
+	S asset.Stocks
+}
+
+// 回测的结果统计信息
+type Statistc_Result struct {
 }
 
 // use callback func of trading algo, param 1 is param of callback func
