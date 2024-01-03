@@ -136,6 +136,8 @@ func statistical_of_backtest() {
 }
 
 func Backtest_Main(db *sql.DB) error {
+	//在回测的时候每一次都由fetch goroutine发送asset.Price给
+	message_ := make(chan asset.Backtest_Messages)
 	//select algo
 	var algo string
 	err := select_algo(&algo)

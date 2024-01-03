@@ -17,6 +17,18 @@ import (
 	"time"
 )
 
+// for backtest message
+type Backtest_Message struct {
+	Asset_Name string
+	Price      Price
+}
+
+// for backtest message send one time
+type Backtest_Messages struct {
+	Message  Backtest_Message
+	Mess_Num int
+}
+
 // for api
 type Daily_Stock struct {
 	Meta_Datas  Meta_Data            `json:"Meta Data"`
