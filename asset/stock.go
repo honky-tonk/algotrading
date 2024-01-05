@@ -188,7 +188,7 @@ func get_daily_price(ptype string, sname string, start_timepoint time.Time, db *
 }
 
 // get price pre weekly(friday night price)
-func get_weekly_price(db *sql.DB, ptype string, sname string, period int) ([]Price, error) {
+func get_weekly_price(db *sql.DB, ptype string, sname string, start_timepoint time.Time) ([]Price, error) {
 	w := Weekly_Stock{}
 	resp, err := get_price_from_api(ptype, sname)
 	if err != nil {
@@ -413,31 +413,63 @@ func Write_To_Database(db *sql.DB, sname string, s []Price) error {
 	return nil
 }
 
-func Read_Stock_Data_From_Database(d *sql.DB, sname string, period int) ([]Price, error) {
+// 给定一个时间读下一条数据
+func Read_Next_Data(db *sql.DB, sname string, start_timepoint time.Time) (Price, error) {
+	//read database first
+	query := `SELECT * FROM sh_stock WHERE stock_id = $1 AND time > $2 ORDER BY time LIMIT 1;`
+	//Price for return
+	var p Price
+	//tmp str
+	tmp_str := "tmp"
+	//start tx
+	tx, _ := db.Begin()
+	//query
+	row := db.QueryRow(query, sname, start_timepoint)
+	//get query result
+	err := row.Scan(&tmp_str, &p.T, &p.SP.Open, &p.SP.Close, &p.SP.High, &p.SP.Low, &p.SP.Volume)
+	if err != nil {
+		logger.Info.Println("sql result can't scanf : ", err.Error())
+		tx.Rollback()
+		return Price{}, err
+	}
+	//commit
+	err = tx.Commit()
+	if err != nil {
+		logger.Info.Println("sql can't commit : ", err.Error())
+		tx.Rollback()
+		return Price{}, err
+	}
+	//read success from database(row exist in database)
+	if tmp_str != "tmp" {
+		return p, nil
+	}
+
+	//read from database failed(row not exist in database), then read from network
+
+}
+
+func Read_Stock_Data_From_Database(d *sql.DB, sname string, start_timepoint time.Time) ([]Price, error) {
 	var p []Price //for return
 	var tmp_price Price
-	query := `SELECT * FROM (SELECT * FROM sh_stock WHERE stock_id = $1  ORDER BY time DESC LIMIT $2) AS price  ORDER BY time ASC;`
-
+	query := `SELECT * FROM sh_stock WHERE stock_id = $1 AND time > $2 ORDER BY time DESC;`
 	tx, _ := d.Begin()
 	//query
-	rows, err := tx.Query(query, sname, period)
+	rows, err := tx.Query(query, sname, start_timepoint)
 	if err != nil {
 		logger.Info.Println("can't exec sql: ", err.Error())
 		tx.Rollback()
 		return nil, err
 	}
 	//fill price for return
-	for i := 0; i < period; i++ {
-		for rows.Next() {
-			var temp string
-			err := rows.Scan(&temp, &tmp_price.T, &tmp_price.SP.Open, &tmp_price.SP.Close, &tmp_price.SP.High, &tmp_price.SP.Low, &tmp_price.SP.Volume)
-			//fmt.Println("v is : ", v)
-			p = append(p, tmp_price)
-			if err != nil {
-				logger.Info.Println("sql result can't scanf : ", err.Error())
-				tx.Rollback()
-				return nil, err
-			}
+	for rows.Next() {
+		var temp string
+		err := rows.Scan(&temp, &tmp_price.T, &tmp_price.SP.Open, &tmp_price.SP.Close, &tmp_price.SP.High, &tmp_price.SP.Low, &tmp_price.SP.Volume)
+		//fmt.Println("v is : ", v)
+		p = append(p, tmp_price)
+		if err != nil {
+			logger.Info.Println("sql result can't scanf : ", err.Error())
+			tx.Rollback()
+			return nil, err
 		}
 	}
 	//commit
