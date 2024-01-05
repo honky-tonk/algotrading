@@ -82,12 +82,12 @@ type Price struct {
 
 // for program
 type Stocks struct {
-	Prices           []Price `json:"prices"`
-	Type             int     `json:"data_type"`
-	Name             string  `json:"stock_name"`
-	Period           int     `json:"period"`
-	Indicator_Type   int     `json:"indic"`
-	Indicator_Period int     `json:"indic_period"`
+	Prices           []Price   `json:"prices"`
+	Type             int       `json:"data_type"`
+	Name             string    `json:"stock_name"`
+	Start_TimePoint  time.Time `json:"start_timepoint"`
+	Indicator_Type   int       `json:"indic"`
+	Indicator_Period int       `json:"indic_period"`
 }
 
 func get_price_from_api(ptype string, assert_name string) (*http.Response, error) {
@@ -105,7 +105,7 @@ func reverse_slice(s []Price) []Price {
 
 // for daily price
 // ptype is price type, sname is stock name, we will fill price map
-func get_daily_price(ptype string, sname string, period int, db *sql.DB) ([]Price, error) {
+func get_daily_price(ptype string, sname string, start_timepoint time.Time, db *sql.DB) ([]Price, error) {
 	d := Daily_Stock{}
 	resp, err := get_price_from_api(ptype, sname)
 	if err != nil {
@@ -163,12 +163,19 @@ func get_daily_price(ptype string, sname string, period int, db *sql.DB) ([]Pric
 		s[i] = Price{T: time, SP: tmp_price}
 		i++
 	}
-	//sort
-	sort.Slice(s, func(i, j int) bool {
-		return s[j].T.Before(s[i].T)
-	})
-	s = s[:period]
-	s = reverse_slice(s)
+	/*
+		//sort
+		sort.Slice(s, func(i, j int) bool {
+			return s[j].T.Before(s[i].T)
+		})*/
+	start_index := len(s) - int(time.Now().Sub(start_timepoint).Hours()/24)
+	s = s[start_index:]
+	for i, p := range s {
+		if p.T == start_timepoint {
+			start_index = i
+		}
+	}
+	s = s[start_index:]
 
 	//write to database
 	err = Write_To_Database(db, sname, s)
@@ -456,14 +463,14 @@ func (s *Stocks) Get_Price(d *sql.DB) (err error) {
 		exist := s.Check_Stock_Exist_From_Database(d)
 		if exist == true {
 			//read data from local database
-			s.Prices, err = Read_Stock_Data_From_Database(d, s.Name, s.Period)
+			s.Prices, err = Read_Stock_Data_From_Database(d, s.Name, s.Start_TimePoint)
 			if err != nil {
 				return err
 			}
 			//fmt.Println(s.Prices)
 			break
 		}
-		s.Prices, err = get_daily_price("TIME_SERIES_DAILY", s.Name, s.Period, d)
+		s.Prices, err = get_daily_price("TIME_SERIES_DAILY", s.Name, s.Start_TimePoint, d)
 		if err != nil {
 			return err
 		}
@@ -474,14 +481,14 @@ func (s *Stocks) Get_Price(d *sql.DB) (err error) {
 		exist := s.Check_Stock_Exist_From_Database(d)
 		if exist == true {
 			//read data from local database
-			s.Prices, err = Read_Stock_Data_From_Database(d, s.Name, s.Period)
+			s.Prices, err = Read_Stock_Data_From_Database(d, s.Name, s.Start_TimePoint)
 			if err != nil {
 				return err
 			}
 			break
 		}
 		//get from alphavantage
-		s.Prices, err = get_weekly_price(d, "TIME_SERIES_WEEKLY", s.Name, s.Period)
+		s.Prices, err = get_weekly_price(d, "TIME_SERIES_WEEKLY", s.Name, s.Start_TimePoint)
 		if err != nil {
 			return err
 		}
@@ -491,14 +498,14 @@ func (s *Stocks) Get_Price(d *sql.DB) (err error) {
 		exist := s.Check_Stock_Exist_From_Database(d)
 		if exist == true {
 			//read data from local database
-			s.Prices, err = Read_Stock_Data_From_Database(d, s.Name, s.Period)
+			s.Prices, err = Read_Stock_Data_From_Database(d, s.Name, s.Start_TimePoint)
 			if err != nil {
 				return err
 			}
 			break
 		}
 		//get from alphavantage
-		s.Prices, err = get_monthly_price(d, "TIME_SERIES_MONTHLY", s.Name, s.Period)
+		s.Prices, err = get_monthly_price(d, "TIME_SERIES_MONTHLY", s.Name, s.Start_TimePoint)
 		if err != nil {
 			return err
 		}
