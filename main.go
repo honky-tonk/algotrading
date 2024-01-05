@@ -1,4 +1,3 @@
-// revert
 package main
 
 import (
