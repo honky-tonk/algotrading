@@ -18,7 +18,7 @@ func Asset_Query(c *gin.Context) {
 	d := db.Db_main()
 	defer d.Close()
 	//for recive front-end POST request
-	s := asset.Stocks{}
+	s := asset.Stock{}
 	err := c.ShouldBindJSON(&s)
 	if err != nil {
 		c.JSON(400, gin.H{

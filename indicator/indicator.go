@@ -3,7 +3,7 @@ package indicator
 import "algotrading/asset"
 
 type Indicator interface {
-	Calculate_Indicator(*asset.Stocks) error
+	Calculate_Indicator(*asset.Stock) error
 	Set_Period(int)
 }
 

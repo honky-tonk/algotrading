@@ -21,7 +21,7 @@ func (m MACD_Indicator) Set_Period(period int) { /*macd no need period*/ }
 /*
 MACD = 12_period EMA - 26_period EMA
 */
-func (m *MACD_Indicator) Calculate_Indicator(s *asset.Stocks) error {
+func (m *MACD_Indicator) Calculate_Indicator(s *asset.Stock) error {
 	m.Smoothing_EMA = 2
 
 	ema_12_period_indic := EMA_Indicator{}

@@ -22,7 +22,7 @@ we use SMA for init ema init indicator
 
 func (ema *EMA_Indicator) Set_Period(period int) { ema.Period = period }
 
-func (ema *EMA_Indicator) Calculate_Indicator(s *asset.Stocks) error {
+func (ema *EMA_Indicator) Calculate_Indicator(s *asset.Stock) error {
 	ema.Smoothing = 2
 	if ema.Smoothing == 0 {
 		return errors.New("Please fill smoothing member of EMA_Indicator struct obj")

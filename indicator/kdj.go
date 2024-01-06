@@ -42,7 +42,7 @@ func find_min(p []asset.Price) int {
 func (kdj KDJ_Indicator) Set_Period(period int) { /*kdj no need period*/ }
 
 // k value is (today close price - lowest price last n day) /(highest close price - lowest price last n day) where n is 14(of course you can edit this value)
-func calculate_kvalue(s *asset.Stocks) []asset.Indicator_Value {
+func calculate_kvalue(s *asset.Stock) []asset.Indicator_Value {
 	k := make([]asset.Indicator_Value, 0)
 	var tmp_k_value asset.Indicator_Value
 	for i, j := 0, 13; j < len(s.Prices); i, j = i+1, j+1 {
@@ -84,7 +84,7 @@ func calculate_jvalue(k []asset.Indicator_Value, d []asset.Indicator_Value, dval
 	return j, nil
 }
 
-func (kdj *KDJ_Indicator) Calculate_Indicator(s *asset.Stocks) error {
+func (kdj *KDJ_Indicator) Calculate_Indicator(s *asset.Stock) error {
 	var kvalue []asset.Indicator_Value
 	var dvalue []asset.Indicator_Value
 	var jvalue []asset.Indicator_Value

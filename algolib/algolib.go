@@ -11,11 +11,11 @@ type Trading_Algo func(params Params) (Statistc_Result, error)
 type Params struct {
 	IsBackTest bool
 	Factors    indicator.Factors
-	S          []asset.Stocks
+	S          []asset.Stock
 }
 
 type Message struct {
-	S asset.Stocks
+	S asset.Stock
 }
 
 // 回测的结果统计信息

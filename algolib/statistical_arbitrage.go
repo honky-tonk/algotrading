@@ -19,20 +19,20 @@ func is_cotains(s []asset.Price, t time.Time) bool {
 }
 
 // cause assets time of price not match so correct, delete not match price of data
-func Correct_Price(s1 asset.Stocks, s2 asset.Stocks) (asset.Stocks, asset.Stocks) {
+func Correct_Price(s1 asset.Stock, s2 asset.Stock) (asset.Stock, asset.Stock) {
 	//for result
-	result := make([]asset.Stocks, 2)
+	result := make([]asset.Stock, 2)
 	result[0] = s1
 	result[1] = s2
 
-	//delete asset.Stocks1 element which exist asset.Stocks1, but not in asset.Stocks2
+	//delete asset.Stock1 element which exist asset.Stock1, but not in asset.Stock2
 	for i := 0; i < len(result[0].Prices); i++ {
 		if !is_cotains(result[1].Prices, result[0].Prices[i].T) {
 			result[0].Prices = append(result[0].Prices[:i], result[0].Prices[i+1:]...)
 		}
 	}
 
-	//delete asset.Stocks2 element which exist asset.Stocks2, but not in asset.Stocks1
+	//delete asset.Stock2 element which exist asset.Stock2, but not in asset.Stock1
 	for i := 0; i < len(result[1].Prices); i++ {
 		if !is_cotains(result[0].Prices, result[1].Prices[i].T) {
 			result[1].Prices = append(result[1].Prices[:i], result[1].Prices[i+1:]...)
@@ -42,7 +42,7 @@ func Correct_Price(s1 asset.Stocks, s2 asset.Stocks) (asset.Stocks, asset.Stocks
 	return result[0], result[1]
 }
 
-func Conver_Stocks_To_Float64Slices(s asset.Stocks) []float64 {
+func Conver_Stocks_To_Float64Slices(s asset.Stock) []float64 {
 	result := make([]float64, 0)
 	for _, v := range s.Prices {
 		result = append(result, v.SP.Close)
@@ -52,7 +52,7 @@ func Conver_Stocks_To_Float64Slices(s asset.Stocks) []float64 {
 
 // find 2个asset是否是correlation的，只要correlation在0.5到0.9之间都称为correlation
 // 输入多个assets,返回最为correlation的2个
-func Find_Max_Correlation(assets []asset.Stocks) (asset.Stocks, asset.Stocks, float64, error) {
+func Find_Max_Correlation(assets []asset.Stock) (asset.Stock, asset.Stock, float64, error) {
 	//for return
 	var max_correlated float64
 	var max_correlated_index1 int
@@ -60,7 +60,7 @@ func Find_Max_Correlation(assets []asset.Stocks) (asset.Stocks, asset.Stocks, fl
 
 	//only compare two assets
 	if len(assets) >= 2 {
-		return asset.Stocks{}, asset.Stocks{}, 0.0, errors.New("Please Input More than two Assets")
+		return asset.Stock{}, asset.Stock{}, 0.0, errors.New("Please Input More than two Assets")
 	}
 	max_correlated = 0.0
 	max_correlated_index1 = -1
@@ -82,7 +82,7 @@ func Find_Max_Correlation(assets []asset.Stocks) (asset.Stocks, asset.Stocks, fl
 
 	//not found corr
 	if max_correlated == 0.0 {
-		return asset.Stocks{}, asset.Stocks{}, 0.0, nil
+		return asset.Stock{}, asset.Stock{}, 0.0, nil
 	}
 
 	return assets[max_correlated_index1], assets[max_correlated_index2], max_correlated, nil

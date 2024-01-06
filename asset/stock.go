@@ -81,7 +81,7 @@ type Price struct {
 }
 
 // for program
-type Stocks struct {
+type Stock struct {
 	Prices           []Price   `json:"prices"`
 	Type             int       `json:"data_type"`
 	Name             string    `json:"stock_name"`
@@ -163,11 +163,7 @@ func get_daily_price(ptype string, sname string, start_timepoint time.Time, db *
 		s[i] = Price{T: time, SP: tmp_price}
 		i++
 	}
-	/*
-		//sort
-		sort.Slice(s, func(i, j int) bool {
-			return s[j].T.Before(s[i].T)
-		})*/
+
 	start_index := len(s) - int(time.Now().Sub(start_timepoint).Hours()/24)
 	s = s[start_index:]
 	for i, p := range s {
@@ -362,11 +358,11 @@ func need_update_data(p []Price) bool {
 	return true
 }
 
-func (s *Stocks) Check_Stock_Exist_From_Database(db *sql.DB) bool {
+func (s *Stock) Check_Stock_Exist_From_Database(db *sql.DB) bool {
 	var exist bool
 
-	Show := `SELECT r.count >= $2  FROM (SELECT COUNT(*) FROM sh_stock  WHERE stock_id = $1) AS r;`
-	rows, err := db.Query(Show, s.Name, s.Period)
+	query := `SELECT EXISTS(SELECT * FROM sh_stock  WHERE stock_id = $1 AND time = $2);`
+	rows, err := db.Query(query, s.Name, s.Start_TimePoint)
 	if err != nil {
 		logger.Error.Fatal("SQL can't exec:", err.Error())
 	}
@@ -484,7 +480,7 @@ func Read_Stock_Data_From_Database(d *sql.DB, sname string, start_timepoint time
 	return p, nil
 }
 
-func (s *Stocks) Get_Price(d *sql.DB) (err error) {
+func (s *Stock) Get_Price(d *sql.DB) (err error) {
 	//var time_type string
 	//var price_from_api interface{}
 

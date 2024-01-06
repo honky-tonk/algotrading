@@ -24,7 +24,7 @@ func (sma *SMA_Indicator) Set_Period(period int) {
 	sma.Period = period
 }
 
-func (sma *SMA_Indicator) Calculate_Indicator(s *asset.Stocks) error {
+func (sma *SMA_Indicator) Calculate_Indicator(s *asset.Stock) error {
 	if len(s.Prices) <= sma.Period {
 		return errors.New("Not Have enough sample for indicator")
 	}
