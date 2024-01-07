@@ -21,20 +21,25 @@ type AlgoRunner_Init struct {
 
 // for init Fetcher, send from algo runner, to fetcher
 type Fetcher_Init struct {
-	Asset_Name      []string
+	Asset_Names     []string
 	Start_TimePoint time.Time
 }
 
 // for fetch goroutine fetch data send to algo runner goroutine
 type Algo_Message struct {
 	Asset_Name string
-	SP         asset.Stock_Price
+	P          asset.Price
 }
 
 // for terminal fetch goroutine and send statistical message to main goroutine, from algo runner goroutine to main goroutine(statistical message)
 type Algo_Terminal_And_Statistical struct {
 	IsTerminal bool
 	Stat       Statistical
+}
+
+type Err_Message struct {
+	Gorotuine_Type string
+	Err            error
 }
 
 // algo_runner运行完后的statistical信息
@@ -186,12 +191,48 @@ func get_price(db *sql.DB, assets []asset.Stock, asset_names []string, fetch_tim
 	return nil
 }
 
-// goroutine get each price algo need, and pass to algo goroutine via channel
-func fetch_perice() {
-	//TODO
+func fetch_price(db *sql.DB, asset_names []string, start_time time.Time, algo_mess []Algo_Message) error {
+	for i, v := range asset_names {
+		var err error
+		algo_mess[i].Asset_Name = v
+		algo_mess[i].P, err = asset.Read_Next_Data(db, v, start_time)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func exec_algo(algo string, assets []asset.Stock) error {
+// goroutine get each price algo need, and pass to algo goroutine via channel
+func fetcher(db *sql.DB, fetcher_init_chan chan Fetcher_Init, messages chan []Algo_Message, ter_chan chan Algo_Terminal_And_Statistical, Err_Chan chan Err_Message) {
+	//get init message from algo runner
+	init_message := <-fetcher_init_chan
+	//for send to algo runner
+	algo_mess := make([]Algo_Message, len(init_message.Asset_Names))
+	start_time := init_message.Start_TimePoint
+
+	for {
+		err := fetch_price(db, init_message.Asset_Names, start_time, algo_mess)
+		if err != nil {
+			//fetcher发生错误将信息回传给main goroutine,然后退出此goroutine
+			Err_Chan <- Err_Message{Err: err, Gorotuine_Type: "fetcher"}
+			return
+		}
+		start_time = start_time.Add(24 * time.Hour)
+		//向algo runner发送message，通过Algo_Message channel，此时如果algo runner没有从channel中拿数据就会被阻塞
+		messages <- algo_mess
+		select {
+		case <-ter_chan:
+			return
+			//因为我们不希望一直被阻塞在<-ter_chan这里,所以用time.After，在执行到ter_chan被阻塞300毫秒(0.3秒)后没有从ter_chan拿到ter_chan消息就break，fetcher取下一个数据
+		case <-time.After(300 * time.Millisecond):
+			break
+		}
+	}
+
+}
+
+func algo_runner(algo string, assets []asset.Stock) error {
 	switch {
 	case algo == "Stat_Arb":
 		params := algolib.Params{}
@@ -211,6 +252,14 @@ func statistical_of_backtest() {
 
 }
 
+/*
+这里讲述一个backtest的流程思路,首先有2个worker goroutine分别是
+1: fetcher:不断地fetch数据给algo_runner
+2: algo_runner:拿到fetcher的数据然后处理
+首先是main传递初始化信息给algo_runner,使algo_runner进行初始化
+
+流程见本目录的backtest_architecture_design.vsdx
+*/
 func Backtest_Main(db *sql.DB) error {
 	//用于main goroutine传递初始化给algo runnter goroutine
 	AlgoRunner_Init_Chan := make(chan AlgoRunner_Init)
@@ -220,6 +269,8 @@ func Backtest_Main(db *sql.DB) error {
 	Algo_message_Chan := make(chan []Algo_Message)
 	//用于algo runner goroutine发送terminal信号给Fetcher goroutine，和Statistical给main
 	Algo_Ter_Stat_Chan := make(chan Algo_Terminal_And_Statistical)
+	//用于fetcher和algo_runner回传错误信息给main goroutine
+	Err_Chan := make(chan Err_Message)
 
 	//从.env中获取algo
 	algo := os.Getenv("ALGO")
@@ -283,11 +334,13 @@ func Backtest_Main(db *sql.DB) error {
 		return err
 	}
 
+	//运行fetcher
+	go fetcher(db, Fetcher_Init_Chan, Algo_message_Chan, Algo_Ter_Stat_Chan, Err_Chan)
+
+	//运行algo_runner
+
 	//exec algo
-	//先说一下这里的思想，由一个goroutine去哪一天的数据然后传入channel被阻塞，
-	//algo也是由一个goroutine驱动，algo goroutine从channel拿到数据进行计算，
-	//在algo goroutine拿到数据的时候fetch_price goroutine解除阻塞继续执行
-	exec_algo(algo, assets, start_timepoint, AlgoRunner_Init_Chan)
+	go algo_runner(algo, assets, start_timepoint, AlgoRunner_Init_Chan)
 
 	//statistical of backtest
 
