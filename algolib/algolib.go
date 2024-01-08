@@ -1,6 +1,8 @@
 package algolib
 
 import (
+	"time"
+
 	"algotrading/asset"
 	"algotrading/indicator"
 )
@@ -9,9 +11,10 @@ import (
 type Trading_Algo func(params Params) (Statistc_Result, error)
 
 type Params struct {
-	IsBackTest bool
-	Factors    indicator.Factors
-	S          []asset.Stock
+	IsBackTest          bool
+	Factors             indicator.Factors
+	S                   []asset.Stock
+	Backtest_Start_Time time.Time
 }
 
 type Message struct {

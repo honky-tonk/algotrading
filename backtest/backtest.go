@@ -15,8 +15,9 @@ import (
 
 // for main goroutine pass init signal and data to algo runner goroutine
 type AlgoRunner_Init struct {
-	Asset_Name      string
-	Start_TimePoint time.Time
+	Algo                     string
+	Assets                   []asset.Stock
+	Backtest_Start_TimePoint time.Time
 }
 
 // for init Fetcher, send from algo runner, to fetcher
@@ -80,44 +81,49 @@ func get_asset_names(asset_names []string) error {
 }
 
 // get fetch start timepoint
-func get_fetch_start_timepoint(fetch_start_timepoint *string) error {
-	fmt.Println("======Input fetch start timepoint======")
-	fmt.Println("Start Time: ")
-	_, err := fmt.Scan(fetch_start_timepoint)
+func get_fetch_start_timepoint(fetch_start_timepoint_raw string, fetch_start_timepoint *time.Time) error {
+	if fetch_start_timepoint_raw == "" {
+		fmt.Println("======Input fetch start timepoint======")
+		fmt.Println("Start Time: ")
+		_, err := fmt.Scan(&fetch_start_timepoint_raw)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	var time_point time.Time
+	time_point, err := time.Parse("2006-01-02", fetch_start_timepoint_raw)
 	if err != nil {
 		return err
 	}
+	*fetch_start_timepoint = time_point
 	return nil
+
 }
 
 // get backtest start time point
-func get_backtest_start_timepoint(backtest_start_timepoint *string, fetch_start_timepoint *string) error {
+func get_backtest_start_timepoint(backtest_start_timepoint_raw string, backtest_start_timepoint *time.Time, fetch_start_timepoint time.Time) error {
 	//.env获取为空然后交互式获取
-	if *backtest_start_timepoint == "" {
+	if backtest_start_timepoint_raw == "" {
 		fmt.Println("==========Get Backtest Start Time Point========")
 		fmt.Println("Start Time Point, like 2006-01-02: ")
-
-		_, err := fmt.Scan(backtest_start_timepoint)
+		_, err := fmt.Scan(&backtest_start_timepoint_raw)
 		if err != nil {
 			return err
 		}
 	}
 
+	var timepoint time.Time
+	//parse get time string
+	timepoint, err := time.Parse("2006-01-02", backtest_start_timepoint_raw)
+	*backtest_start_timepoint = timepoint
+	if err != nil {
+		return err
+	}
+
 	//backtest_start_point不能小于fetch_start_time_point
-	var backtest_start_time time.Time
-	var fetch_start_time time.Time
-
-	backtest_start_time, err := time.Parse("2006-01-02", *backtest_start_timepoint)
-	if err != nil {
-		return err
-	}
-
-	fetch_start_time, err = time.Parse("2006-01-02", *fetch_start_timepoint)
-	if err != nil {
-		return err
-	}
-
-	if backtest_start_time.Before(fetch_start_time) {
+	if backtest_start_timepoint.Before(fetch_start_timepoint) {
 		return errors.New("error! start time point greater than asset period.")
 	}
 
@@ -172,12 +178,7 @@ func get_price_type(price_type_string string) (int, error) {
 }
 
 // get price
-func get_price(db *sql.DB, assets []asset.Stock, asset_names []string, fetch_timepoint string, price_type int) error {
-	start_time, err := time.Parse("2006-01-02", fetch_timepoint)
-	if err != nil {
-		return err
-	}
-
+func get_price(db *sql.DB, assets []asset.Stock, asset_names []string, start_time time.Time, price_type int) error {
 	for _, v := range asset_names {
 		tmp_stock := asset.Stock{
 			Name:            v,
@@ -232,15 +233,19 @@ func fetcher(db *sql.DB, fetcher_init_chan chan Fetcher_Init, messages chan []Al
 
 }
 
-func algo_runner(algo string, assets []asset.Stock) error {
+func algo_runner(algo_init_chan chan AlgoRunner_Init, fetcher_init_chan chan Fetcher_Init, algo_mess_chan chan []Algo_Message, stat_and_ter_chan chan Algo_Terminal_And_Statistical, err_mess_chan chan Err_Message) error {
+	//从channel AlgoRunner_Init中拿到algorunner的初始化数据
+	algo_init_mess := <-algo_init_chan
+
 	switch {
-	case algo == "Stat_Arb":
+	case algo_init_mess.Algo == "Stat_Arb":
 		params := algolib.Params{}
 		params.IsBackTest = true
-		params.S = assets
+		params.S = algo_init_mess.Assets
+		params.Backtest_Start_Time = algo_init_mess.Backtest_Start_TimePoint
 		algolib.Call_Algo(params, algolib.Stat_Arb)
 
-	case algo == "Mean_Reversion":
+	case algo_init_mess.Algo == "Mean_Reversion":
 
 	default:
 		return errors.New("Algo Input Error: Algo Not Found")
@@ -308,21 +313,21 @@ func Backtest_Main(db *sql.DB) error {
 	}
 
 	//从.env中获取fetch start time point
-	var fetch_start_timepoint string
-	fetch_start_timepoint = os.Getenv("FETCH_START_TIMEPOINT")
-	if fetch_start_timepoint == "" {
-		//如果.env没有找到就交互获取
-		err := get_fetch_start_timepoint(&fetch_start_timepoint)
-		if err != nil {
-			return err
-		}
+	var fetch_start_timepoint_raw string
+	var fetch_start_timepoint time.Time
+	fetch_start_timepoint_raw = os.Getenv("FETCH_START_TIMEPOINT")
+	err = get_fetch_start_timepoint(fetch_start_timepoint_raw, &fetch_start_timepoint)
+	if err != nil {
+		return err
+
 	}
 
 	//从.env中获取backtest_start_time_point
-	var backtest_start_timepoint string
-	backtest_start_timepoint = os.Getenv("BACKTEST_START_TIMEPOINT")
+	var backtest_start_timepoint_raw string
+	var backtest_start_timepoint time.Time
+	backtest_start_timepoint_raw = os.Getenv("BACKTEST_START_TIMEPOINT")
 	//无论是否从.env获取到了BACKTEST_START_TIMEPOINT，都要进入下面函数进行判断
-	err = get_backtest_start_timepoint(&backtest_start_timepoint, &fetch_start_timepoint)
+	err = get_backtest_start_timepoint(backtest_start_timepoint_raw, &backtest_start_timepoint, fetch_start_timepoint)
 	if err != nil {
 		return err
 	}
@@ -338,10 +343,13 @@ func Backtest_Main(db *sql.DB) error {
 	go fetcher(db, Fetcher_Init_Chan, Algo_message_Chan, Algo_Ter_Stat_Chan, Err_Chan)
 
 	//运行algo_runner
+	go algo_runner(AlgoRunner_Init_Chan, Fetcher_Init_Chan, Algo_message_Chan, Algo_Ter_Stat_Chan, Err_Chan)
 
-	//exec algo
-	go algo_runner(algo, assets, start_timepoint, AlgoRunner_Init_Chan)
-
+	AlgoRunner_Init_Chan <- AlgoRunner_Init{
+		Algo:                     algo,
+		Backtest_Start_TimePoint: backtest_start_timepoint,
+		Assets:                   assets,
+	}
 	//statistical of backtest
 
 	return nil
