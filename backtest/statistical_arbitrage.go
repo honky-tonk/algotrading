@@ -1,4 +1,4 @@
-package algolib
+package backtest
 
 import (
 	"algotrading/asset"

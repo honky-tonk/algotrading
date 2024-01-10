@@ -5,40 +5,6 @@ import (
 	"errors"
 )
 
-/*for KDJ indicator*/
-
-type KDJ_Indicator struct {
-	Kvalue []asset.Indicator_Value `json:"kvalues"`
-	Dvalue []asset.Indicator_Value `json:"dvalues"`
-	Jvalue []asset.Indicator_Value `json:"jvalues"`
-	Period int                     `json:"indic_period"`
-	//Type   int 						`json:"type"`
-}
-
-// find max stock price give period and return INDIX
-func find_max(p []asset.Price) int {
-	max_value_idx := 0
-	for i, _ := range p {
-		if p[max_value_idx].SP.Close < p[i].SP.Close {
-			max_value_idx = i
-		}
-	}
-
-	return max_value_idx
-}
-
-// find min stock price give period and return INDIX
-func find_min(p []asset.Price) int {
-	min_value_idx := 0
-	for i, _ := range p {
-		if p[min_value_idx].SP.Close > p[i].SP.Close {
-			min_value_idx = i
-		}
-	}
-
-	return min_value_idx
-}
-
 func (kdj KDJ_Indicator) Set_Period(period int) { /*kdj no need period*/ }
 
 // k value is (today close price - lowest price last n day) /(highest close price - lowest price last n day) where n is 14(of course you can edit this value)

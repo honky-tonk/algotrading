@@ -8,44 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"algotrading/algolib"
+	//"algotrading/algolib"
 	"algotrading/asset"
 	"algotrading/global"
 )
-
-// for main goroutine pass init signal and data to algo runner goroutine
-type AlgoRunner_Init struct {
-	Algo                     string
-	Assets                   []asset.Stock
-	Backtest_Start_TimePoint time.Time
-}
-
-// for init Fetcher, send from algo runner, to fetcher
-type Fetcher_Init struct {
-	Asset_Names     []string
-	Start_TimePoint time.Time
-}
-
-// for fetch goroutine fetch data send to algo runner goroutine
-type Algo_Message struct {
-	Asset_Name string
-	P          asset.Price
-}
-
-// for terminal fetch goroutine and send statistical message to main goroutine, from algo runner goroutine to main goroutine(statistical message)
-type Algo_Terminal_And_Statistical struct {
-	IsTerminal bool
-	Stat       Statistical
-}
-
-type Err_Message struct {
-	Gorotuine_Type string
-	Err            error
-}
-
-// algo_runner运行完后的statistical信息
-type Statistical struct {
-}
 
 func get_asset_names(asset_names []string) error {
 	var num int
@@ -239,11 +205,18 @@ func algo_runner(algo_init_chan chan AlgoRunner_Init, fetcher_init_chan chan Fet
 
 	switch {
 	case algo_init_mess.Algo == "Stat_Arb":
-		params := algolib.Params{}
+		Params{}
+		//for algo
+		params := Params{}
 		params.IsBackTest = true
 		params.S = algo_init_mess.Assets
 		params.Backtest_Start_Time = algo_init_mess.Backtest_Start_TimePoint
-		algolib.Call_Algo(params, algolib.Stat_Arb)
+
+		// //for backtest arch
+		// params.Algo_Init_Chan =
+		// params.Algo_Mess_Chan =
+		// params.Err_Mess_Chan =
+		Call_Algo(params, Stat_Arb)
 
 	case algo_init_mess.Algo == "Mean_Reversion":
 

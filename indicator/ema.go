@@ -7,15 +7,6 @@ import (
 	//"fmt"
 )
 
-/*for exponential moving average(EMA) indicator*/
-
-type EMA_Indicator struct {
-	//Asset_Type      int							`json:"type"`
-	Period          int                     `json:"indic_period"`
-	Indicator_Value []asset.Indicator_Value `json:"indic_values"`
-	Smoothing       int                     `json:"smoothing"`
-}
-
 /*
 we use SMA for init ema init indicator
 */

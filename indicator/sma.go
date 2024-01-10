@@ -1,17 +1,10 @@
 package indicator
 
-/*for Simple Moving Average(SMA) indicator*/
 import (
 	"algotrading/asset"
 	"errors"
 	"fmt"
 )
-
-type SMA_Indicator struct {
-	//Asset_Type      int
-	Period          int                     `json:"indic_period"`
-	Indicator_Value []asset.Indicator_Value `json:"indic_values"`
-}
 
 /*
 a array of price of end of day is: 1(end of day1), 2(end of day2), 3(end of day3), 4(end of day4), 5(end of day5), 6, 7, 8, 9(end of day9)

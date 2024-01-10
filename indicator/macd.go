@@ -5,17 +5,6 @@ import (
 	"errors"
 )
 
-/*for moving average convergence/divergence indicator*/
-
-type MACD_Indicator struct {
-	//Asset_Type int
-	//Period int # the formula of MACD is 12_Period EMA - 26_period EMA
-	Signal_Indicator     []asset.Indicator_Value `json:"signal_values"` //9-period of ema(ema data from MACD)
-	MACD_Indicator_Value []asset.Indicator_Value `json:"macd_values"`
-	Smoothing_EMA        int                     `json:"smoothing_of_ema"`
-	Period               int                     `json:"indic_period"`
-}
-
 func (m MACD_Indicator) Set_Period(period int) { /*macd no need period*/ }
 
 /*
