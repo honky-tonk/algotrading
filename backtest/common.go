@@ -17,6 +17,7 @@ type AlgoRunner_Init struct {
 // for init Fetcher, send from algo runner, to fetcher
 type Fetcher_Init struct {
 	Asset_Names     []string
+	Asset_Type      int
 	Start_TimePoint time.Time
 }
 

@@ -144,7 +144,8 @@ func get_price_type(price_type_string string) (int, error) {
 }
 
 // get price
-func get_price(db *sql.DB, assets []asset.Stock, asset_names []string, start_time time.Time, price_type int) error {
+func get_price(db *sql.DB, asset_names []string, start_time time.Time, price_type int) ([]asset.Stock, error) {
+	var assets []asset.Stock
 	for _, v := range asset_names {
 		tmp_stock := asset.Stock{
 			Name:            v,
@@ -155,19 +156,79 @@ func get_price(db *sql.DB, assets []asset.Stock, asset_names []string, start_tim
 		assets = append(assets, tmp_stock)
 	}
 
-	return nil
+	return assets, nil
 }
 
-func fetch_price(db *sql.DB, asset_names []string, start_time time.Time, algo_mess []Algo_Message) error {
+// fetch next daily price
+func fetch_next_daily_price(db *sql.DB, asset_names []string, start_time time.Time) ([]Algo_Message, time.Time, error) {
+	mess := []Algo_Message{}
 	for i, v := range asset_names {
 		var err error
-		algo_mess[i].Asset_Name = v
-		algo_mess[i].P, err = asset.Read_Next_Data(db, v, start_time)
+		mess[i].Asset_Name = v
+		mess[i].P, err = asset.Read_Next_Daily_Data(db, v, start_time)
 		if err != nil {
-			return err
+			return mess, time.Time{}, err
 		}
 	}
-	return nil
+	return mess, start_time.AddDate(0, 0, 1), nil
+}
+
+// // fetch next weekly price
+// func fetch_next_weekly_price(db *sql.DB, asset_names []string, start_time time.Time) ([]Algo_Message, time.Time, error) {
+// 	mess := []Algo_Message{}
+// 	for i, v := range asset_names {
+// 		var err error
+// 		mess[i].Asset_Name = v
+// 		mess[i].P, err = asset.Read_Next_Data(db, v, start_time)
+// 		if err != nil {
+// 			return mess, time.Time{}, err
+// 		}
+// 	}
+// 	return mess, start_time.Add(7 * 24 * time.Hour), nil
+// }
+
+// // fetch next monthly price
+// func fetch_next_monthly_price(db *sql.DB, asset_names []string, start_time time.Time) ([]Algo_Message, time.Time, error) {
+// 	mess := []Algo_Message{}
+// 	for i, v := range asset_names {
+// 		var err error
+// 		mess[i].Asset_Name = v
+// 		mess[i].P, err = asset.Read_Next_Data(db, v, start_time)
+// 		if err != nil {
+// 			return mess, time.Time{}, err
+// 		}
+// 	}
+// 	return mess, start_time.AddDate(0,1,0), nil
+// }
+
+// fetch next price
+func fetch_next_price(db *sql.DB, asset_names []string, asset_type int, start_time time.Time) ([]Algo_Message, time.Time, error) {
+	var algo_mess []Algo_Message
+	var next_start_time time.Time
+	var err error
+	switch {
+	case asset_type == global.Daily:
+		algo_mess, next_start_time, err = fetch_next_daily_price(db, asset_names, start_time)
+		if err != nil {
+			return nil, time.Time{}, err
+		}
+		break
+	// case asset_type == global.Weekly:
+	// 	algo_mess, next_start_time, err = fetch_next_weekly_price(db, asset_names, start_time)
+	// 	if err != nil {
+	// 		return nil, time.Time{}, err
+	// 	}
+	// 	break
+	// case asset_type == global.Monthly:
+	// 	algo_mess, next_start_time, err = fetch_next_monthly_price(db, asset_names, start_time)
+	// 	if err != nil {
+	// 		return nil, time.Time{}, err
+	// 	}
+	// 	break
+	default:
+		return nil, next_start_time, errors.New("wrong asset type!")
+	}
+	return algo_mess, next_start_time, nil
 }
 
 // goroutine get each price algo need, and pass to algo goroutine via channel
@@ -175,17 +236,18 @@ func fetcher(db *sql.DB, fetcher_init_chan chan Fetcher_Init, messages chan []Al
 	//get init message from algo runner
 	init_message := <-fetcher_init_chan
 	//for send to algo runner
-	algo_mess := make([]Algo_Message, len(init_message.Asset_Names))
+	//algo_mess := make([]Algo_Message, len(init_message.Asset_Names))
 	start_time := init_message.Start_TimePoint
-
+	var err error
+	var algo_mess []Algo_Message
 	for {
-		err := fetch_price(db, init_message.Asset_Names, start_time, algo_mess)
+		algo_mess, start_time, err = fetch_next_price(db, init_message.Asset_Names, init_message.Asset_Type, start_time)
 		if err != nil {
 			//fetcher发生错误将信息回传给main goroutine,然后退出此goroutine
 			Err_Chan <- Err_Message{Err: err, Gorotuine_Type: "fetcher"}
 			return
 		}
-		start_time = start_time.Add(24 * time.Hour)
+		//start_time = start_time.Add(24 * time.Hour)
 		//向algo runner发送message，通过Algo_Message channel，此时如果algo runner没有从channel中拿数据就会被阻塞
 		messages <- algo_mess
 		select {
@@ -205,17 +267,17 @@ func algo_runner(algo_init_chan chan AlgoRunner_Init, fetcher_init_chan chan Fet
 
 	switch {
 	case algo_init_mess.Algo == "Stat_Arb":
-		Params{}
 		//for algo
 		params := Params{}
 		params.IsBackTest = true
 		params.S = algo_init_mess.Assets
 		params.Backtest_Start_Time = algo_init_mess.Backtest_Start_TimePoint
 
-		// //for backtest arch
-		// params.Algo_Init_Chan =
-		// params.Algo_Mess_Chan =
-		// params.Err_Mess_Chan =
+		//for backtest arch
+		params.Algo_Init_Chan = algo_init_chan
+		params.Fetcher_Init_Chan = fetcher_init_chan
+		params.Algo_Mess_Chan = algo_mess_chan
+		params.Err_Mess_Chan = err_mess_chan
 		Call_Algo(params, Stat_Arb)
 
 	case algo_init_mess.Algo == "Mean_Reversion":
@@ -306,8 +368,7 @@ func Backtest_Main(db *sql.DB) error {
 	}
 
 	//get price
-	var assets []asset.Stock
-	err = get_price(db, assets, asset_names, fetch_start_timepoint, price_type)
+	assets, err := get_price(db, asset_names, fetch_start_timepoint, price_type)
 	if err != nil {
 		return err
 	}

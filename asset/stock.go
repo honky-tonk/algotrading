@@ -12,7 +12,6 @@ import (
 	"net/http"
 
 	//"slices" slices.Reverse support since go 1.21
-	"sort"
 	"strconv"
 	"time"
 )
@@ -33,6 +32,27 @@ func reverse_slice(s []Price) []Price {
 // for daily price
 // ptype is price type, sname is stock name, we will fill price map
 func get_daily_price(ptype string, sname string, start_timepoint time.Time, db *sql.DB) ([]Price, error) {
+	//如果是周六就延后2天
+	if start_timepoint.Weekday() == time.Saturday {
+		start_timepoint = start_timepoint.AddDate(0, 0, 2)
+	}
+	//如果是周日就延后1天
+	if start_timepoint.Weekday() == time.Sunday {
+		start_timepoint = start_timepoint.AddDate(0, 0, 1)
+	}
+
+	//check if exist in database
+	exist := Check_Stock_Exist_From_Database(db, sname, start_timepoint)
+	if exist == true {
+		//read data from local database
+		p, err := Read_Stock_Data_From_Database(db, sname, start_timepoint)
+		if err != nil {
+			return nil, err
+		}
+		//fmt.Println(s.Prices)
+		return p, nil
+	}
+
 	d := Daily_Stock{}
 	resp, err := get_price_from_api(ptype, sname)
 	if err != nil {
@@ -110,165 +130,165 @@ func get_daily_price(ptype string, sname string, start_timepoint time.Time, db *
 
 }
 
-// get price pre weekly(friday night price)
-func get_weekly_price(db *sql.DB, ptype string, sname string, start_timepoint time.Time) ([]Price, error) {
-	w := Weekly_Stock{}
-	resp, err := get_price_from_api(ptype, sname)
-	if err != nil {
-		return nil, err
-	}
-	//read from respond body
-	b, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-	// unmarshal(take a serialized object to internal data structure) full Weekly_Stock struct
-	err = json.Unmarshal(b, &w)
-	if err != nil {
-		return nil, err
-	}
-	if len(w.Time_Series) == 0 {
-		return nil, errors.New("get price of asset from alphavantage error!")
-	}
+// // get price pre weekly(friday night price)
+// func get_weekly_price(db *sql.DB, ptype string, sname string, start_timepoint time.Time) ([]Price, error) {
+// 	w := Weekly_Stock{}
+// 	resp, err := get_price_from_api(ptype, sname)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	//read from respond body
+// 	b, err := io.ReadAll(resp.Body)
+// 	resp.Body.Close()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	// unmarshal(take a serialized object to internal data structure) full Weekly_Stock struct
+// 	err = json.Unmarshal(b, &w)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	if len(w.Time_Series) == 0 {
+// 		return nil, errors.New("get price of asset from alphavantage error!")
+// 	}
 
-	//convert map[string]Api_string which  get from internet to slice of Price
-	s := make([]Price, len(w.Time_Series))
-	i := 0
-	for k, v := range w.Time_Series {
-		time, err := time.Parse("2006-01-02", k)
-		if err != nil {
-			return nil, err
-		}
-		tmp_price := Stock_Price{}
-		tmp_price.Close, err = strconv.ParseFloat(v.Close, 64)
-		if err != nil {
-			return nil, err
-		}
+// 	//convert map[string]Api_string which  get from internet to slice of Price
+// 	s := make([]Price, len(w.Time_Series))
+// 	i := 0
+// 	for k, v := range w.Time_Series {
+// 		time, err := time.Parse("2006-01-02", k)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		tmp_price := Stock_Price{}
+// 		tmp_price.Close, err = strconv.ParseFloat(v.Close, 64)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		tmp_price.Open, err = strconv.ParseFloat(v.Open, 64)
-		if err != nil {
-			return nil, err
-		}
+// 		tmp_price.Open, err = strconv.ParseFloat(v.Open, 64)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		tmp_price.High, err = strconv.ParseFloat(v.High, 64)
-		if err != nil {
-			return nil, err
-		}
+// 		tmp_price.High, err = strconv.ParseFloat(v.High, 64)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		tmp_price.Low, err = strconv.ParseFloat(v.Low, 64)
-		if err != nil {
-			return nil, err
-		}
+// 		tmp_price.Low, err = strconv.ParseFloat(v.Low, 64)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		tmp_price.Volume, err = strconv.ParseInt(v.Volume, 10, 64)
-		if err != nil {
-			return nil, err
-		}
+// 		tmp_price.Volume, err = strconv.ParseInt(v.Volume, 10, 64)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		s[i] = Price{T: time, SP: tmp_price}
-		i++
-	}
-	//sort
-	sort.Slice(s, func(i, j int) bool {
-		return s[j].T.Before(s[i].T)
-	})
-	s = s[:period]
-	s = reverse_slice(s)
-	//write to database
-	err = Write_To_Database(db, sname, s)
-	if err != nil {
-		logger.Info.Println("write database error: " + err.Error())
-		return nil, err
-	}
-	return s, nil
+// 		s[i] = Price{T: time, SP: tmp_price}
+// 		i++
+// 	}
+// 	//sort
+// 	sort.Slice(s, func(i, j int) bool {
+// 		return s[j].T.Before(s[i].T)
+// 	})
+// 	s = s[:period]
+// 	s = reverse_slice(s)
+// 	//write to database
+// 	err = Write_To_Database(db, sname, s)
+// 	if err != nil {
+// 		logger.Info.Println("write database error: " + err.Error())
+// 		return nil, err
+// 	}
+// 	return s, nil
 
-}
+// }
 
-// get the price of each month last trade day's
-func get_monthly_price(db *sql.DB, ptype string, sname string, period int) ([]Price, error) {
-	m := Monthly_Stock{}
-	resp, err := get_price_from_api(ptype, sname)
-	if err != nil {
-		return nil, err
-	}
-	//read from respond body
-	b, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-	//fmt.Println(b)
-	// unmarshal(take a serialized object to internal data structure) full Monthly_Stock struct
-	err = json.Unmarshal(b, &m)
-	//fmt.Println(d.Meta_Datas)
-	if err != nil {
-		//fmt.Println(err.Error())
-		return nil, err
-	}
-	if len(m.Time_Series) == 0 {
-		return nil, errors.New("get price of asset from alphavantage error!")
-	}
+// // get the price of each month last trade day's
+// func get_monthly_price(db *sql.DB, ptype string, sname string, period int) ([]Price, error) {
+// 	m := Monthly_Stock{}
+// 	resp, err := get_price_from_api(ptype, sname)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	//read from respond body
+// 	b, err := io.ReadAll(resp.Body)
+// 	resp.Body.Close()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	//fmt.Println(b)
+// 	// unmarshal(take a serialized object to internal data structure) full Monthly_Stock struct
+// 	err = json.Unmarshal(b, &m)
+// 	//fmt.Println(d.Meta_Datas)
+// 	if err != nil {
+// 		//fmt.Println(err.Error())
+// 		return nil, err
+// 	}
+// 	if len(m.Time_Series) == 0 {
+// 		return nil, errors.New("get price of asset from alphavantage error!")
+// 	}
 
-	//convert map[string]Api_string which  get from internet to slice of Price
-	s := make([]Price, len(m.Time_Series))
-	i := 0
-	for k, v := range m.Time_Series {
-		//fmt.Println("key: ", k, "value: ", v)
-		time, err := time.Parse("2006-01-02", k)
-		if err != nil {
-			//fmt.Println(err.Error())
-			return nil, err
-		}
-		tmp_price := Stock_Price{}
-		tmp_price.Close, err = strconv.ParseFloat(v.Close, 64)
-		if err != nil {
-			//fmt.Println(err.Error())
-			return nil, err
-		}
+// 	//convert map[string]Api_string which  get from internet to slice of Price
+// 	s := make([]Price, len(m.Time_Series))
+// 	i := 0
+// 	for k, v := range m.Time_Series {
+// 		//fmt.Println("key: ", k, "value: ", v)
+// 		time, err := time.Parse("2006-01-02", k)
+// 		if err != nil {
+// 			//fmt.Println(err.Error())
+// 			return nil, err
+// 		}
+// 		tmp_price := Stock_Price{}
+// 		tmp_price.Close, err = strconv.ParseFloat(v.Close, 64)
+// 		if err != nil {
+// 			//fmt.Println(err.Error())
+// 			return nil, err
+// 		}
 
-		tmp_price.Open, err = strconv.ParseFloat(v.Open, 64)
-		if err != nil {
-			//fmt.Println(err.Error())
-			return nil, err
-		}
+// 		tmp_price.Open, err = strconv.ParseFloat(v.Open, 64)
+// 		if err != nil {
+// 			//fmt.Println(err.Error())
+// 			return nil, err
+// 		}
 
-		tmp_price.High, err = strconv.ParseFloat(v.High, 64)
-		if err != nil {
-			//fmt.Println(err.Error())
-			return nil, err
-		}
+// 		tmp_price.High, err = strconv.ParseFloat(v.High, 64)
+// 		if err != nil {
+// 			//fmt.Println(err.Error())
+// 			return nil, err
+// 		}
 
-		tmp_price.Low, err = strconv.ParseFloat(v.Low, 64)
-		if err != nil {
-			//fmt.Println(err.Error())
-			return nil, err
-		}
+// 		tmp_price.Low, err = strconv.ParseFloat(v.Low, 64)
+// 		if err != nil {
+// 			//fmt.Println(err.Error())
+// 			return nil, err
+// 		}
 
-		tmp_price.Volume, err = strconv.ParseInt(v.Volume, 10, 64)
-		if err != nil {
-			//fmt.Println(err.Error())
-			return nil, err
-		}
+// 		tmp_price.Volume, err = strconv.ParseInt(v.Volume, 10, 64)
+// 		if err != nil {
+// 			//fmt.Println(err.Error())
+// 			return nil, err
+// 		}
 
-		//s[i] = price_entries{time: tmp_price}
-		s[i] = Price{T: time, SP: tmp_price}
-		i++
-	}
-	//sort
-	sort.Slice(s, func(i, j int) bool {
-		return s[j].T.Before(s[i].T)
-	})
-	s = s[:period]
-	s = reverse_slice(s)
-	//write to database
-	err = Write_To_Database(db, sname, s)
-	if err != nil {
-		logger.Info.Println("write database error: " + err.Error())
-		return nil, err
-	}
-	return s, nil
-}
+// 		//s[i] = price_entries{time: tmp_price}
+// 		s[i] = Price{T: time, SP: tmp_price}
+// 		i++
+// 	}
+// 	//sort
+// 	sort.Slice(s, func(i, j int) bool {
+// 		return s[j].T.Before(s[i].T)
+// 	})
+// 	s = s[:period]
+// 	s = reverse_slice(s)
+// 	//write to database
+// 	err = Write_To_Database(db, sname, s)
+// 	if err != nil {
+// 		logger.Info.Println("write database error: " + err.Error())
+// 		return nil, err
+// 	}
+// 	return s, nil
+// }
 
 func need_update_data(p []Price) bool {
 	now := time.Now()          //time of now
@@ -285,11 +305,11 @@ func need_update_data(p []Price) bool {
 	return true
 }
 
-func (s *Stock) Check_Stock_Exist_From_Database(db *sql.DB) bool {
+func Check_Stock_Exist_From_Database(db *sql.DB, sname string, start_timepoint time.Time) bool {
 	var exist bool
 
 	query := `SELECT EXISTS(SELECT * FROM sh_stock  WHERE stock_id = $1 AND time = $2);`
-	rows, err := db.Query(query, s.Name, s.Start_TimePoint)
+	rows, err := db.Query(query, sname, start_timepoint)
 	if err != nil {
 		logger.Error.Fatal("SQL can't exec:", err.Error())
 	}
@@ -336,40 +356,93 @@ func Write_To_Database(db *sql.DB, sname string, s []Price) error {
 	return nil
 }
 
-// 给定一个时间读下一条数据
-func Read_Next_Data(db *sql.DB, sname string, start_timepoint time.Time) (Price, error) {
-	//read database first
-	query := `SELECT * FROM sh_stock WHERE stock_id = $1 AND time > $2 ORDER BY time LIMIT 1;`
-	//Price for return
-	var p Price
-	//tmp str
-	tmp_str := "tmp"
-	//start tx
-	tx, _ := db.Begin()
-	//query
-	row := db.QueryRow(query, sname, start_timepoint)
-	//get query result
-	err := row.Scan(&tmp_str, &p.T, &p.SP.Open, &p.SP.Close, &p.SP.High, &p.SP.Low, &p.SP.Volume)
-	if err != nil {
-		logger.Info.Println("sql result can't scanf : ", err.Error())
-		tx.Rollback()
-		return Price{}, err
+// 给定一个时间读下一条Daily数据
+func Read_Next_Daily_Data(db *sql.DB, sname string, start_timepoint time.Time) (Price, error) {
+	//next_start_timepoint是否是周末
+	if start_timepoint.Weekday() == time.Friday {
+		start_timepoint = start_timepoint.AddDate(0, 0, 3)
 	}
-	//commit
-	err = tx.Commit()
+	s := Stock{}
+	s.Start_TimePoint = start_timepoint
+	s.Type = global.Daily
+	s.Name = sname
+	err := s.Get_Price(db)
 	if err != nil {
-		logger.Info.Println("sql can't commit : ", err.Error())
-		tx.Rollback()
-		return Price{}, err
-	}
-	//read success from database(row exist in database)
-	if tmp_str != "tmp" {
-		return p, nil
+		return Price{}, nil
 	}
 
-	//read from database failed(row not exist in database), then read from network
-
+	return s.Prices[1], nil
 }
+
+// // 给定一个时间读下一条Weekly数据
+// func Read_Next_Weekly_Data(db *sql.DB, sname string, start_timepoint time.Time) (Price, error) {
+// 	//read database first
+// 	query := `SELECT * FROM sh_stock WHERE stock_id = $1 AND time > $2 ORDER BY time LIMIT 1;`
+// 	//Price for return
+// 	var p Price
+// 	//tmp str
+// 	tmp_str := "tmp"
+// 	//start tx
+// 	tx, _ := db.Begin()
+// 	//query
+// 	row := db.QueryRow(query, sname, start_timepoint)
+// 	//get query result
+// 	err := row.Scan(&tmp_str, &p.T, &p.SP.Open, &p.SP.Close, &p.SP.High, &p.SP.Low, &p.SP.Volume)
+// 	if err != nil {
+// 		logger.Info.Println("sql result can't scanf : ", err.Error())
+// 		tx.Rollback()
+// 		return Price{}, err
+// 	}
+// 	//commit
+// 	err = tx.Commit()
+// 	if err != nil {
+// 		logger.Info.Println("sql can't commit : ", err.Error())
+// 		tx.Rollback()
+// 		return Price{}, err
+// 	}
+// 	//read success from database(row exist in database)
+// 	if tmp_str != "tmp" {
+// 		return p, nil
+// 	}
+
+// 	//read from database failed(row not exist in database), then read from network
+
+// }
+
+// // 给定一个时间读下一条Monthly数据
+// func Read_Next_Monthly_Data(db *sql.DB, sname string, start_timepoint time.Time) (Price, error) {
+// 	//read database first
+// 	query := `SELECT * FROM sh_stock WHERE stock_id = $1 AND time > $2 ORDER BY time LIMIT 1;`
+// 	//Price for return
+// 	var p Price
+// 	//tmp str
+// 	tmp_str := "tmp"
+// 	//start tx
+// 	tx, _ := db.Begin()
+// 	//query
+// 	row := db.QueryRow(query, sname, start_timepoint)
+// 	//get query result
+// 	err := row.Scan(&tmp_str, &p.T, &p.SP.Open, &p.SP.Close, &p.SP.High, &p.SP.Low, &p.SP.Volume)
+// 	if err != nil {
+// 		logger.Info.Println("sql result can't scanf : ", err.Error())
+// 		tx.Rollback()
+// 		return Price{}, err
+// 	}
+// 	//commit
+// 	err = tx.Commit()
+// 	if err != nil {
+// 		logger.Info.Println("sql can't commit : ", err.Error())
+// 		tx.Rollback()
+// 		return Price{}, err
+// 	}
+// 	//read success from database(row exist in database)
+// 	if tmp_str != "tmp" {
+// 		return p, nil
+// 	}
+
+// 	//read from database failed(row not exist in database), then read from network
+
+// }
 
 func Read_Stock_Data_From_Database(d *sql.DB, sname string, start_timepoint time.Time) ([]Price, error) {
 	var p []Price //for return
@@ -414,57 +487,57 @@ func (s *Stock) Get_Price(d *sql.DB) (err error) {
 	fmt.Println("Daily is: ", global.Daily)
 	switch {
 	case s.Type == global.Daily:
-		//check if exist in database
-		exist := s.Check_Stock_Exist_From_Database(d)
-		if exist == true {
-			//read data from local database
-			s.Prices, err = Read_Stock_Data_From_Database(d, s.Name, s.Start_TimePoint)
-			if err != nil {
-				return err
-			}
-			//fmt.Println(s.Prices)
-			break
-		}
+		// //check if exist in database
+		// exist := s.Check_Stock_Exist_From_Database(d)
+		// if exist == true {
+		// 	//read data from local database
+		// 	s.Prices, err = Read_Stock_Data_From_Database(d, s.Name, s.Start_TimePoint)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// 	//fmt.Println(s.Prices)
+		// 	break
+		// }
 		s.Prices, err = get_daily_price("TIME_SERIES_DAILY", s.Name, s.Start_TimePoint, d)
 		if err != nil {
 			return err
 		}
 		//fmt.Println(s.Prices)
 		break
-	case s.Type == global.Weekly:
-		//check if exist in database
-		exist := s.Check_Stock_Exist_From_Database(d)
-		if exist == true {
-			//read data from local database
-			s.Prices, err = Read_Stock_Data_From_Database(d, s.Name, s.Start_TimePoint)
-			if err != nil {
-				return err
-			}
-			break
-		}
-		//get from alphavantage
-		s.Prices, err = get_weekly_price(d, "TIME_SERIES_WEEKLY", s.Name, s.Start_TimePoint)
-		if err != nil {
-			return err
-		}
-		break
-	case s.Type == global.Monthly:
-		//check if exist in database
-		exist := s.Check_Stock_Exist_From_Database(d)
-		if exist == true {
-			//read data from local database
-			s.Prices, err = Read_Stock_Data_From_Database(d, s.Name, s.Start_TimePoint)
-			if err != nil {
-				return err
-			}
-			break
-		}
-		//get from alphavantage
-		s.Prices, err = get_monthly_price(d, "TIME_SERIES_MONTHLY", s.Name, s.Start_TimePoint)
-		if err != nil {
-			return err
-		}
-		break
+	// case s.Type == global.Weekly:
+	// 	//check if exist in database
+	// 	exist := s.Check_Stock_Exist_From_Database(d)
+	// 	if exist == true {
+	// 		//read data from local database
+	// 		s.Prices, err = Read_Stock_Data_From_Database(d, s.Name, s.Start_TimePoint)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 		break
+	// 	}
+	// 	//get from alphavantage
+	// 	s.Prices, err = get_weekly_price(d, "TIME_SERIES_WEEKLY", s.Name, s.Start_TimePoint)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	break
+	// case s.Type == global.Monthly:
+	// 	//check if exist in database
+	// 	exist := s.Check_Stock_Exist_From_Database(d)
+	// 	if exist == true {
+	// 		//read data from local database
+	// 		s.Prices, err = Read_Stock_Data_From_Database(d, s.Name, s.Start_TimePoint)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 		break
+	// 	}
+	// 	//get from alphavantage
+	// 	s.Prices, err = get_monthly_price(d, "TIME_SERIES_MONTHLY", s.Name, s.Start_TimePoint)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	break
 	default:
 		return errors.New("error stock time type")
 	}
