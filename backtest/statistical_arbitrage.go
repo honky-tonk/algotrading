@@ -89,20 +89,70 @@ func Find_Max_Correlation(assets []asset.Stock) (asset.Stock, asset.Stock, float
 
 }
 
-// Stat_Arb执行前2个asset已经是correlation
-func Stat_Arb(param Params) (Statistc_Result, error) {
-	//result for return
-	result := Statistc_Result{}
+func get_spread_sample_mean() float64 {
 
+}
+
+// Stat_Arb执行前2个asset已经是correlation
+func Stat_Arb(param Params) {
+	//terminal and stat message
+	ter_stat := Algo_Terminal_And_Statistical{}
+	//for fetcher init
+	fetcher_init_mess := Fetcher_Init{}
+	//get algo runner init message from main
+	algo_init_mess := <-param.Algo_Init_Chan
+	//get asset type
+	var asset_type int
+	//如果发现asset为空，说明从main拿到的algo_runner 初始化数据有问题直接退出程序
+	if len(algo_init_mess.Assets) == 0 {
+		ter_stat.Err.Gorotuine_Type = "fetcher"
+		ter_stat.Err.Err = errors.New("Assets is null, error with init message")
+		param.Ter_Stat_Chan <- ter_stat
+		return
+	}
+	asset_type = algo_init_mess.Assets[0].Type
+	//asset names
+	var asset_names []string
+	//init fetcher init message
+	//fetcher_init_mess.Asset_Names = asset_names
+	fetcher_init_mess.Asset_Type = asset_type
+	fetcher_init_mess.Start_TimePoint = algo_init_mess.Backtest_Start_TimePoint
 	//find max correalation
 	asset1, asset2, corr, err := Find_Max_Correlation(param.S)
 	if err != nil {
-		return result, err
+		ter_stat.Err.Gorotuine_Type = "fetcher"
+		ter_stat.Err.Err = err
+		param.Ter_Stat_Chan <- ter_stat
+		return
 	}
 	if corr == 0.0 {
-		//return not found correlation assets
+		ter_stat.Err.Gorotuine_Type = "fetcher"
+		ter_stat.Err.Err = errors.New("Not found correlation assets")
+		param.Ter_Stat_Chan <- ter_stat
+		return
+	}
+	asset_names = append(asset_names, asset1.Name)
+	asset_names = append(asset_names, asset2.Name)
+	fetcher_init_mess.Asset_Names = asset_names
+	//send to channel for fetcher init
+	param.Fetcher_Init_Chan <- fetcher_init_mess
+
+	spreads_sample_mean := get_spread_sample_mean()
+	//回测
+	for {
+		select {
+		//get from fetcher
+		case <-param.Algo_Mess_Chan:
+		//
+		case <-time.After(time.Microsecond * 300):
+			break
+		//get err message from main or fetcher
+		case <-param.Ter_Stat_Chan:
+			return
+		}
 	}
 
-	//TODO
-	return result, nil
+	//param.Ter_Stat_Chan <- ter_stat
+	//return
+
 }

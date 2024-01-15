@@ -30,7 +30,8 @@ type Algo_Message struct {
 // for terminal fetch goroutine and send statistical message to main goroutine, from algo runner goroutine to main goroutine(statistical message)
 type Algo_Terminal_And_Statistical struct {
 	IsTerminal bool
-	Stat       Statistc_Result
+	Stat       Statistical
+	Err        Err_Message
 }
 
 type Err_Message struct {
@@ -40,10 +41,14 @@ type Err_Message struct {
 
 // algo_runner运行完后的statistical信息
 type Statistical struct {
+	Max_DrawDown float64
+	Sharp_Ratio  float64
+	Start_Price  float64
+	Return       float64
 }
 
 // callback func of trading algo
-type Trading_Algo func(params Params) (Statistc_Result, error)
+type Trading_Algo func(params Params)
 
 type Params struct {
 	//for algo
@@ -56,17 +61,20 @@ type Params struct {
 	Algo_Init_Chan    chan AlgoRunner_Init
 	Fetcher_Init_Chan chan Fetcher_Init
 	Algo_Mess_Chan    chan []Algo_Message
-	Stat_Ter_Chan     chan Algo_Terminal_And_Statistical
-	Err_Mess_Chan     chan Err_Message
+	Ter_Stat_Chan     chan Algo_Terminal_And_Statistical
+	//Err_Mess_Chan     chan Err_Message
 }
 
 type Message struct {
 	S asset.Stock
 }
 
-// 回测的结果统计信息
-type Statistc_Result struct {
-}
+// //Stat Arb
+// //每一次进行套利计算后得到的信息
+// type Stat_Arb_Info struct{
+// 	float64
+
+// }
 
 // use callback func of trading algo, param 1 is param of callback func
 func Call_Algo(param Params, algo Trading_Algo) {

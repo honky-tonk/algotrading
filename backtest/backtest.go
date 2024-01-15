@@ -261,7 +261,7 @@ func fetcher(db *sql.DB, fetcher_init_chan chan Fetcher_Init, messages chan []Al
 
 }
 
-func algo_runner(algo_init_chan chan AlgoRunner_Init, fetcher_init_chan chan Fetcher_Init, algo_mess_chan chan []Algo_Message, stat_and_ter_chan chan Algo_Terminal_And_Statistical, err_mess_chan chan Err_Message) error {
+func algo_runner(algo_init_chan chan AlgoRunner_Init, fetcher_init_chan chan Fetcher_Init, algo_mess_chan chan []Algo_Message, stat_and_ter_chan chan Algo_Terminal_And_Statistical) error {
 	//从channel AlgoRunner_Init中拿到algorunner的初始化数据
 	algo_init_mess := <-algo_init_chan
 
@@ -277,7 +277,7 @@ func algo_runner(algo_init_chan chan AlgoRunner_Init, fetcher_init_chan chan Fet
 		params.Algo_Init_Chan = algo_init_chan
 		params.Fetcher_Init_Chan = fetcher_init_chan
 		params.Algo_Mess_Chan = algo_mess_chan
-		params.Err_Mess_Chan = err_mess_chan
+		//params.Err_Mess_Chan = err_mess_chan
 		Call_Algo(params, Stat_Arb)
 
 	case algo_init_mess.Algo == "Mean_Reversion":
@@ -377,7 +377,7 @@ func Backtest_Main(db *sql.DB) error {
 	go fetcher(db, Fetcher_Init_Chan, Algo_message_Chan, Algo_Ter_Stat_Chan, Err_Chan)
 
 	//运行algo_runner
-	go algo_runner(AlgoRunner_Init_Chan, Fetcher_Init_Chan, Algo_message_Chan, Algo_Ter_Stat_Chan, Err_Chan)
+	go algo_runner(AlgoRunner_Init_Chan, Fetcher_Init_Chan, Algo_message_Chan, Algo_Ter_Stat_Chan)
 
 	AlgoRunner_Init_Chan <- AlgoRunner_Init{
 		Algo:                     algo,
