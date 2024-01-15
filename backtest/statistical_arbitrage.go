@@ -89,8 +89,13 @@ func Find_Max_Correlation(assets []asset.Stock) (asset.Stock, asset.Stock, float
 
 }
 
-func get_spread_sample_mean() float64 {
-
+func get_spread(s1 asset.Stock, s2 asset.Stock) []float64 {
+	var spread []float64
+	//已经完成格式化直接对比
+	for i, _ := range s1.Prices {
+		spread = append(spread, s1.Prices[i].SP.Close-s2.Prices[i].SP.Close)
+	}
+	return spread
 }
 
 // Stat_Arb执行前2个asset已经是correlation
@@ -137,13 +142,19 @@ func Stat_Arb(param Params) {
 	//send to channel for fetcher init
 	param.Fetcher_Init_Chan <- fetcher_init_mess
 
-	spreads_sample_mean := get_spread_sample_mean()
+	spreads := get_spread(asset1, asset2)
 	//回测
 	for {
 		select {
 		//get from fetcher
-		case <-param.Algo_Mess_Chan:
-		//
+		case mess := <-param.Algo_Mess_Chan:
+			price1 := mess[0].P.SP.Close
+			price2 := mess[1].P.SP.Close
+			spread := price1 - price2
+			spreads = append(spreads, spread)
+			spread_sample_mean, spread_sample_stddev := stat.MeanStdDev(spreads, nil)
+			spread_sample_zscore := (spread - spread_sample_mean) / spread_sample_stddev
+			//TODO
 		case <-time.After(time.Microsecond * 300):
 			break
 		//get err message from main or fetcher
