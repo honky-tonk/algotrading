@@ -154,6 +154,10 @@ func Stat_Arb(param Params) {
 			spreads = append(spreads, spread)
 			spread_sample_mean, spread_sample_stddev := stat.MeanStdDev(spreads, nil)
 			spread_sample_zscore := (spread - spread_sample_mean) / spread_sample_stddev
+			if spread_sample_mean > 2*spread_sample_zscore {
+
+			}
+
 			//TODO
 		case <-time.After(time.Microsecond * 300):
 			break
